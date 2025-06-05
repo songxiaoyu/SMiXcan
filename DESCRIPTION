@@ -1,0 +1,23 @@
+Package: SMiXcan
+Type: Package
+Title: Cell-Type-Aware TWAS with S-MiXcan
+Version: 0.1.0
+Author: Sinan Zhu
+Maintainer: Sinan Zhu <sinan.zhu@u.duke.nus.edu>
+Description: Functions to run MiXcan and S-MiXcan analysis on bulk and GWAS summary statistics data.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Imports:
+  data.table,
+  lme4,
+  glmnet,
+  doParallel,
+  doRNG,
+  ACAT,
+  MiXcan,
+  tibble,
+  tidyr,
+  dplyr,
+  MASS
+RoxygenNote: 7.2.3
