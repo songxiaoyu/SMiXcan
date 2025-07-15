@@ -13,7 +13,7 @@
 #   Check Package:             'Cmd + Shift + E'
 #   Test Package:              'Cmd + Shift + T'
 
-library('test.that')
+#library('test.that')
 hello <- function() {
   print("Hello, world!")
 }

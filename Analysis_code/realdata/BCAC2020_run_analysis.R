@@ -90,18 +90,18 @@ for (g in 1:G) {
     Beta = filtered_list[[gene]]$selected_snp$beta.Gwas,
     se_Beta = filtered_list[[gene]]$selected_snp$SE.Gwas
   )
-  
+
   cov_x_g <- cov_ref[selected_snp_id, selected_snp_id, drop = FALSE]
   x_g <- X_ref[, selected_snp_id, drop = FALSE]
-  
+
   Y <- x_g %*% W
   Y <-scale(Y)
   Y <- cbind(1, Y)
   colnames(Y) <- c("Y0", "Y1", "Y2")
   YtY <- t(Y) %*% Y
-  
+
   S_MiXcan_results <- run_S_MiXcan_r(W[,1], W[,2], gwas_results, cov_x_g, YtY, 'binomial', Z_0)
-  
+
   real_result[g, ] <- c(
     S_MiXcan_results$p_1_sep,
     S_MiXcan_results$p_2_sep,
@@ -119,5 +119,22 @@ abline(0,1)
 write.csv(real_result, sprintf("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/Breast_Cancer_Risk_2020/bcac2020_chr%d_result_shrinked.csv", chr), row.names = FALSE)
 }
 
-                        
-                        
+chr = 2
+file = sprintf("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/bcac2020_result/bcac2020_chr%d_result_shrinked.csv", chr)
+file = '/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/DRIVE/drive_result_chr05.csv'
+result_chr2 <- read.csv(file)
+View(result_chr2)
+hist(result_chr2$p_s_join)
+hist(result_chr2$p_s_join, main = "P-value Distribution", xlab = "P-value", breaks = 50)
+hist(result_chr2$p_s_join, freq = FALSE, main = "P-value Distribution of chr2", xlab = "P-value", breaks = 50)
+abline(h = 1, col = "red", lty = 2)
+qqplot(-log10(runif(length(result_chr2$p_s_join))), -log10(result_chr2$p_s_join),
+       main = "QQ Plot of P-values",
+       xlab = "Expected -log10(P)",
+       ylab = "Observed -log10(P)")
+abline(0, 1, col = "red", lty = 2)
+
+chisq <- qchisq(1 - result_chr2$p_m_sep, df = 1)
+lambda <- median(chisq) / qchisq(0.5, df = 1)
+print(lambda)
+

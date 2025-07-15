@@ -4,10 +4,11 @@
 #' @param D is the phenotype
 #' @family0 binomial or gaussian
 #' @return a list of inverse matrix X_inv and regularized parameter lambda
-#' @expor
+#' @importFrom tibble lst
+#' @export
 run_gwas <- function(X, D, family0){
-  Beta = rep(0, ncol(sim_data$x.test))
-  se_Beta = rep(0, ncol(sim_data$x.test))
+  Beta = rep(0, ncol(X))
+  se_Beta = rep(0, ncol(X))
   for(j in 1: ncol(X)){
     gwas_result<- glm(D ~ X[,j], family=family0)
     Beta[j] = gwas_result$coefficients[2]

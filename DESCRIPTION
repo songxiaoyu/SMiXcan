@@ -12,8 +12,6 @@ Imports:
   data.table,
   lme4,
   glmnet,
-  doParallel,
-  doRNG,
   ACAT,
   MiXcan,
   tibble,
