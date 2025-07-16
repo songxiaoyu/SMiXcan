@@ -3,19 +3,13 @@
 #' @param X X is the covariance matrix
 #' @return a list of inverse matrix X_inv and regularized parameter lambda
 #' @expor
-regularized_inverse_cov <- function(X, lambda = NULL) {
+regularized_inverse_cov <- function(X) {
 
   r <- abs(cor(X))
-  if(r[1,2] > 0.9 || r[2,3] > 0.9){
-    print('regularization applied')
-    lambda = 0.3 * abs(r)^6
-  }else{
-    lambda = 0.3 * abs(r)^6
-  }
+  lambda = 0.3 * abs(r)^6
   # Apply regularization if lambda > 0
   X_cor <- cov2cor(X)
   X_reg <- X_cor + lambda * diag(nrow(X))
-  # X_cor_inv <- pseudoinverse(X_reg)
   X_cor_inv <- solve(X_reg)
   D <- diag(X)
   X_inv <- diag(1/sqrt(D)) %*% X_cor_inv %*% diag(1/sqrt(D))
@@ -37,7 +31,7 @@ regularized_inverse_cov <- function(X, lambda = NULL) {
 #' @n0 number of controls
 #' @n1 number of cases
 #' @family 'binomial' or 'gaussian'
-#' @return a list of p-value from S-MiXcan  c(p_1_sep, p_2_sep, p_1_join, p_2_join, p_join)
+#' @return a list of p-value and z-value from S-MiXcan  c(p_1_sep, p_2_sep, p_1_join, p_2_join, p_join)
 #' @importFrom tibble lst
 #' @export
 SMiXcan_assoc_test <- function(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family){
