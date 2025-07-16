@@ -192,9 +192,7 @@ MiXcan_association_shrink <- function(new_outcome, new_y, new_cov = NULL, lambda
   if (length(p_values) == 0) {
     p_combined <- NA
   } else {
-    chisq <- -2 * sum(log(p_values))
-    p_combined <- pchisq(chisq, df=2*length(p_values), lower.tail=FALSE)
-  }
+    p_combined <- safe_ACAT(p_values)}
 
   # Return result
   result <- data.frame(
