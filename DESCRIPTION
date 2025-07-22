@@ -17,5 +17,7 @@ Imports:
   tibble,
   tidyr,
   dplyr,
-  MASS
+  MASS,
+  broom,
+  magrittr
 RoxygenNote: 7.2.3

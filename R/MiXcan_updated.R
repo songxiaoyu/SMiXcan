@@ -1,29 +1,41 @@
-# safe_ACAT  calculates ACAT including catching error
-#' @param p_values
-#' @return ACAT p-value result
-#' @expor
+#' Safe Wrapper for ACAT P-value Combination
+#'
+#' This function computes a combined p-value using the ACAT method while handling possible numerical or input errors.
+#' If an error occurs during computation, the function returns \code{NA} and prints an informative message.
+#'
+#' @param p_values A numeric vector of p-values to be combined using the ACAT method.
+#'
+#' @return A single numeric value: the combined p-value (or \code{NA} if ACAT fails).
+#'
+#' @importFrom ACAT ACAT
+#' @export
 safe_ACAT <- function(p_values) {
   tryCatch({
     ACAT::ACAT(p_values)
   }, error = function(e) {
     message("ACAT Error occurred: ", e$message)
-    return(NA)  # Return NA or an alternative value
+    return(NA)
   })
 }
-# TO ADD: Z score beta, se_beta,... correlation updated
-# change the name updated_MiXcan_association_test
 
-# MiXcan_association_join
-#' @param new_y gene expression level
-#' @param new_cov covariates
-#' @param new_outcome phenotype
-#' @param family gaussian or binomial
-#' @return p-value
+#' Cell-Type-Aware Association (Joint Model)
+#'
+#' This function fits a generalized linear model (GLM) for joint association testing of two cell-type-specific predicted expressions with phenotype,
+#' adjusting for covariates. It uses ACAT to combine p-values from both predictors.
+#'
+#' @param new_y A matrix or data frame containing predicted expression levels for two cell types (columns named "cell_1" and "cell_2").
+#' @param new_cov A data frame of covariates (e.g., age, principal components).
+#' @param new_outcome A vector or one-column matrix of phenotype values (e.g., binary case/control or continuous trait).
+#' @param family A GLM family object or string: either \code{"gaussian"} for continuous outcomes or \code{"binomial"} for binary outcomes.
+#'
+#' @return A data frame containing estimates, standard errors, and p-values for both cell types, as well as the combined p-value using ACAT.
+#'
 #' @importFrom broom tidy
-#' @importFrom dplyr filter mutate bind_cols
+#' @importFrom dplyr filter mutate select bind_cols
+#' @importFrom stats as.formula cor glm
 #' @importFrom magrittr %>%
-#' @expor
-MiXcan_association_join<-function (new_y, new_cov, new_outcome, family = gaussian)
+#' @export
+MiXcan_association_join<-function (new_y, new_cov, new_outcome, family = 'gaussian')
 {
   dat <- data.frame(new_y, new_cov, y = new_outcome[,1])
   if(identical(family, 'binomial')){
@@ -58,18 +70,24 @@ MiXcan_association_join<-function (new_y, new_cov, new_outcome, family = gaussia
 }
 
 
-# MiXcan_association_sep
-#' @param new_y gene expression level
-#' @param new_cov covariates
-#' @param new_outcome phenotype
-#' @param family gaussian or binomial
-#' @return p-value
+#' Cell-Type-Aware Association (Separate Models)
+#'
+#' This function performs two separate generalized linear models (GLMs) for testing the association between each cell-type-specific predicted expression
+#' and the outcome, adjusting for covariates. It uses ACAT to combine p-values from both models.
+#'
+#' @param new_y A matrix or data frame of predicted expression for two cell types. The first column will be used for cell 1, the second for cell 2.
+#' @param new_cov A data frame of covariates (e.g., age, PCs).
+#' @param new_outcome A vector or one-column matrix of phenotype values (e.g., binary case/control or continuous trait).
+#' @param family A GLM family, either \code{"gaussian"} or \code{"binomial"}.
+#'
+#' @return A data frame with estimates, standard errors, and p-values for each cell type, and a combined p-value using ACAT.
+#'
 #' @importFrom broom tidy
-#' @importFrom dplyr filter mutate bind_cols
+#' @importFrom dplyr filter mutate select bind_cols
 #' @importFrom magrittr %>%
-#' @expor
+#' @export
 MiXcan_association_sep <- function(new_y, new_cov,
-                                   new_outcome, family= gaussian){
+                                   new_outcome, family= 'gaussian'){
 
   dat1 <- data.frame(cell_1 = new_y[,1], cov = new_cov,  y = new_outcome[,1])
   #
@@ -102,6 +120,27 @@ MiXcan_association_sep <- function(new_y, new_cov,
   return(result)
 }
 
+#' @title Cell-Type-Aware Association with Shrinkage (Ridge Logistic Regression)
+#'
+#' @description
+#' This function performs cell-type-aware association analysis using ridge-regularized logistic regression
+#' followed by inference using an unpenalized model. It estimates the individual and combined p-values for
+#' predicted gene expressions (e.g., from cell type 1 and cell type 2).
+#'
+#' @param new_outcome A binary phenotype vector (0/1 or factor).
+#' @param new_y A matrix or data frame of predicted expression for two cell types (columns = cell_1 and cell_2).
+#' @param new_cov A data frame of covariates (optional). Can include categorical variables (e.g., country, study).
+#' @param lambda Optional regularization parameter. If NULL, estimated based on correlation structure.
+#'
+#' @return A data frame containing effect size estimates, standard errors, and p-values for both cell types,
+#'         and a combined p-value from ACAT.
+#'
+#' @importFrom glmnet glmnet
+#' @importFrom stats model.matrix glm binomial na.omit
+#' @importFrom broom tidy
+#' @importFrom dplyr select bind_cols mutate
+#' @importFrom magrittr %>%
+#' @export
 
 MiXcan_association_shrink <- function(new_outcome, new_y, new_cov = NULL, lambda = NULL) {
   # Combine everything into one dataframe

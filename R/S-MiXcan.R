@@ -1,8 +1,20 @@
+#' Regularized Inverse of a Covariance Matrix
+#'
+#' Computes a regularized inverse of a covariance matrix using correlation shrinkage.
+#'
+#' @name regularized_inverse_cov
+#' @title Regularized Covariance Matrix Inversion
+#'
+#' @param X A numeric covariance matrix.
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{inv}{The regularized inverse matrix.}
+#'   \item{lambda}{The regularization parameter used.}
+#' }
+#'
+#' @export
 
-# regularized_inverse_cov calculates regularized inverse covariance
-#' @param X X is the covariance matrix
-#' @return a list of inverse matrix X_inv and regularized parameter lambda
-#' @expor
 regularized_inverse_cov <- function(X) {
 
   r <- abs(cor(X))
@@ -20,20 +32,35 @@ regularized_inverse_cov <- function(X) {
   ))
 }
 
-# SMiXcan_assoc_test
-# estimate YtY from reference genome
-# run_S_MiXcan_r runs S-MiXcan with shrinkage (final version)
-#' @param W1 a p by 1 matrix of weights for cell-type 1 (p is the number of snps in the neighborhood of the gene)
-#' @param W2 a p by 1 matrix of weights for cell-type 2
-#' @param gwas_results a list from gwas results analysis results: the first element is the vector of effect size Beta, and the second vector is standard error of Beta se_Beta
-#' @param ref_g reference genome # name changed
-#' @param ref_ld ld covariance matrix from reference # name changed
-#' @n0 number of controls
-#' @n1 number of cases
-#' @family 'binomial' or 'gaussian'
-#' @return a list of p-value and z-value from S-MiXcan  c(p_1_sep, p_2_sep, p_1_join, p_2_join, p_join)
+#' S-MiXcan Association Test with Shrinkage
+#'
+#' Performs the S-MiXcan association test using GWAS summary statistics and reference LD data,
+#' applying shrinkage-based regularization to stabilize inverse covariance estimation.
+#'
+#' @param W1 A p-by-1 matrix of weights for cell-type 1 (where p is the number of SNPs in the gene region).
+#' @param W2 A p-by-1 matrix of weights for cell-type 2.
+#' @param gwas_results A list containing GWAS summary statistics, with components \code{Beta} and \code{se_Beta}.
+#' @param x_g A genotype matrix for the reference panel (individuals × SNPs).
+#' @param ld_ref A p-by-p LD covariance matrix from the reference panel.
+#' @param n0 Number of controls.
+#' @param n1 Number of cases.
+#' @param family Either \code{"binomial"} or \code{"gaussian"} (used for fitting the null model).
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{p_1_sep}{P-value for cell-type 1 (separate model)}
+#'   \item{p_2_sep}{P-value for cell-type 2 (separate model)}
+#'   \item{p_sep}{Combined p-value from separate models (ACAT)}
+#'   \item{p_1_join}{P-value for cell-type 1 (joint model)}
+#'   \item{p_2_join}{P-value for cell-type 2 (joint model)}
+#'   \item{p_join}{Combined p-value from joint model (ACAT)}
+#'   \item{Z_1_join}{Z-score for cell-type 1 (joint model)}
+#'   \item{Z_2_join}{Z-score for cell-type 2 (joint model)}
+#' }
+#'
 #' @importFrom tibble lst
 #' @export
+
 SMiXcan_assoc_test <- function(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family){
   y_0 <- rep(1,n1 + n0)
   D <- c(rep(1, n1), rep(0, n0))
@@ -87,6 +114,37 @@ SMiXcan_assoc_test <- function(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family
 
   return(results)
 }
+
+#' Run S-MiXcan with Shrinkage Regularization
+#'
+#' Performs cell-type-aware TWAS using GWAS summary statistics, reference LD matrix, and estimated expression weights.
+#' This function estimates the association signal using a shrinkage-regularized inverse of the \( Y^T Y \) matrix,
+#' which improves numerical stability and handles near-collinearity between predictors.
+#'
+#' @param W1 A p-by-1 matrix of predicted weights for cell-type 1 (p: number of SNPs).
+#' @param W2 A p-by-1 matrix of predicted weights for cell-type 2.
+#' @param gwas_results A list with components \code{Beta} (effect sizes) and \code{se_Beta} (standard errors).
+#' @param x_g A genotype matrix (individuals × SNPs) from reference panel.
+#' @param ld_ref A p-by-p LD covariance matrix from the reference panel.
+#' @param n0 Number of controls.
+#' @param n1 Number of cases.
+#' @param family A string, either \code{"binomial"} or \code{"gaussian"}, passed to \code{glm()}.
+#'
+#' @return A list with the following components:
+#' \describe{
+#'   \item{p_1_sep}{P-value for cell-type 1 (separate test)}
+#'   \item{p_2_sep}{P-value for cell-type 2 (separate test)}
+#'   \item{p_sep}{Combined p-value (ACAT) from separate tests}
+#'   \item{p_1_join}{P-value for cell-type 1 (joint test)}
+#'   \item{p_2_join}{P-value for cell-type 2 (joint test)}
+#'   \item{p_join}{Combined p-value (ACAT) from joint test}
+#'   \item{Z_1_join}{Z-score for cell-type 1 in joint test}
+#'   \item{Z_2_join}{Z-score for cell-type 2 in joint test}
+#' }
+#'
+#' @importFrom tibble lst
+#' @importFrom stats as.formula coef cor cov2cor gaussian pnorm
+#' @export
 
 run_S_MiXcan_r <- function(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family){
   y_0 <- rep(1,n1 + n0)

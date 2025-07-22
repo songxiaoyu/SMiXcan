@@ -1,10 +1,24 @@
-# train_prediction_model
-#' @param y.train gene expression level in training data
-#' @param x.train genome in training data
-#' @param pi.train pi estimate in training data
-#' @return a list of W1 W2 and selected_snp
+#' Train Cell-Type-Specific Prediction Model
+#'
+#' Trains a cell-type-aware prediction model using MiXcan, estimating weights for SNPs across cell types.
+#'
+#' @name train_prediction_model
+#' @title Train Cell-Type-Specific Prediction Model Using MiXcan
+#'
+#' @param y.train Gene expression levels in training data.
+#' @param x.train Genotype matrix in training data.
+#' @param pi.train Estimated cell-type proportions in training data.
+#'
+#' @return A list containing:
+#' \describe{
+#'   \item{W1}{Weight vector for cell type 1}
+#'   \item{W2}{Weight vector for cell type 2}
+#'   \item{selected_snp}{Indices of selected SNPs}
+#' }
+#'
 #' @importFrom MiXcan MiXcan MiXcan_extract_weight
 #' @export
+
 train_prediction_model <- function(y.train, x.train, pi.train){
   foldid_eg <- sample(1:10, length(y.train), replace=T)
   n_train = nrow(x.train)
