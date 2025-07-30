@@ -35,7 +35,7 @@ safe_ACAT <- function(p_values) {
 #' @importFrom stats as.formula cor glm
 #' @importFrom magrittr %>%
 #' @export
-MiXcan_association_join<-function (new_y, new_cov, new_outcome, family = 'gaussian')
+MiXcan_assoc_test<-function (new_y, new_cov, new_outcome, family = 'gaussian')
 {
   dat <- data.frame(new_y, new_cov, y = new_outcome[,1])
   if(identical(family, 'binomial')){
@@ -69,56 +69,6 @@ MiXcan_association_join<-function (new_y, new_cov, new_outcome, family = 'gaussi
   return(result)
 }
 
-
-#' Cell-Type-Aware Association (Separate Models)
-#'
-#' This function performs two separate generalized linear models (GLMs) for testing the association between each cell-type-specific predicted expression
-#' and the outcome, adjusting for covariates. It uses ACAT to combine p-values from both models.
-#'
-#' @param new_y A matrix or data frame of predicted expression for two cell types. The first column will be used for cell 1, the second for cell 2.
-#' @param new_cov A data frame of covariates (e.g., age, PCs).
-#' @param new_outcome A vector or one-column matrix of phenotype values (e.g., binary case/control or continuous trait).
-#' @param family A GLM family, either \code{"gaussian"} or \code{"binomial"}.
-#'
-#' @return A data frame with estimates, standard errors, and p-values for each cell type, and a combined p-value using ACAT.
-#'
-#' @importFrom broom tidy
-#' @importFrom dplyr filter mutate select bind_cols
-#' @importFrom magrittr %>%
-#' @export
-MiXcan_association_sep <- function(new_y, new_cov,
-                                   new_outcome, family= 'gaussian'){
-
-  dat1 <- data.frame(cell_1 = new_y[,1], cov = new_cov,  y = new_outcome[,1])
-  #
-  dat2 <- data.frame(cell_2 = new_y[,2], cov = new_cov,  y = new_outcome[,1])
-  if(identical(family, 'binomial')){
-    dat1$y <- as.factor(dat1$y)
-    dat2$y <- as.factor(dat2$y)
-  }
-  #
-  # ft1 ft2
-  ft1 <- glm(as.formula(paste0("y ~.")), data = dat1, family = family)
-  ft2 <- glm(as.formula(paste0("y ~.")), data = dat2, family = family)
-
-  res1_full <- broom::tidy(ft1)
-  res1<- res1_full %>% filter(term == "cell_1")
-  res2_full <- broom::tidy(ft2)
-  res2 <- res2_full %>% filter(term == "cell_2")
-  p_combined <- safe_ACAT(c(res1$p.value, res2$p.value))
-
-  result <- res1 %>%
-    dplyr::select(cell1_est = estimate,
-                  cell1_se = std.error,
-                  cell1_p = p.value) %>%
-    bind_cols(res2 %>%
-                dplyr::select(cell2_est = estimate,
-                              cell2_se = std.error,
-                              cell2_p = p.value)) %>%
-    mutate(p_combined = p_combined) %>%
-    as.data.frame()
-  return(result)
-}
 
 #' @title Cell-Type-Aware Association with Shrinkage (Ridge Logistic Regression)
 #'
