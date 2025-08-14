@@ -1,13 +1,13 @@
 
 # S-MiXcan
 
-**S-MiXcan** is an R package for performing cell-type-aware **summary-based transcriptome-wide or proteome-wide association studies (TWAS/PWAS)**. It extends the MiXcan framework to analyze associations between genetically regulated gene expression (GReX) and traits using GWAS summary statistics, while accounting for cell-type-specific effects.
+**S-MiXcan** is an R package for performing cell-type-aware **summary-based transcriptome-wide association studies (TWAS)**. It extends the MiXcan framework to analyze associations between genetically regulated gene expression (GReX) and traits using GWAS summary statistics, while accounting for cell-type-specific effects.
 
 ---
 
 ## 🔬 Overview
 
-Traditional TWAS and PWAS models are based on bulk tissue expression data, potentially masking signals that are specific to particular cell types. **S-MiXcan** decomposes GReX into multiple cell-type-specific components and jointly tests their associations with phenotypic outcomes, enhancing biological resolution.
+Traditional transcriptome-wide association studies (TWAS) predict gene expression at the tissue level and test associations of predicted tissue-level expression with disease, often disregarding the diverse roles of different cell types in disease etiology. MiXcan is a recent approach that enables cell-type-aware TWAS but requires individual-level genotype data. In this study, we introduce S-MiXcan, a summary statistics-based, cell-type-aware TWAS framework. S-MiXcan utilizes summary statistics to infer associations between diseases and predicted expression at the cell-type level. Simulation studies demonstrate that S-MiXcan maintains well-controlled type I error rates and yields results comparable to those obtained using individual genotype data.
 
 ---
 
@@ -20,10 +20,8 @@ You can install the development version of `S-MiXcan` from GitHub:
 install.packages("devtools")
 
 # Install S-MiXcan from GitHub
-devtools::install_github("YourUsername/SMiXcan")
+devtools::install_github("songxiaoyu/SMiXcan")
 ```
-
-> Replace `"YourUsername"` with your GitHub handle.
 
 ---
 
@@ -106,7 +104,7 @@ head(real_result)
 ```
 SMiXcan/
 ├── R/                  # Core functions
-├── data/               # Example models or data objects
+├── data/               # Example data objects
 ├── man/                # Documentation
 ├── vignettes/          # Usage examples and tutorials
 └── README.md           # Package description and instructions
@@ -116,9 +114,7 @@ SMiXcan/
 
 ## 📄 Citation
 
-If you use **S-MiXcan** in your research, please cite:
-
-> Zhu S, Song X, et al. (2025). *S-MiXcan: Cell-type-aware proteome-wide association analysis using GWAS summary statistics*. [Manuscript in preparation].
+If you use **S-MiXcan** in your research, please cite this page
 
 ---
 
@@ -134,4 +130,4 @@ Email: sinan.zhu@u.duke.nus.edu
 
 ## 🔒 License
 
-This package is distributed under the MIT License. See `LICENSE` file for details.
+
