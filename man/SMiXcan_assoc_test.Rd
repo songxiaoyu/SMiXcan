@@ -4,7 +4,16 @@
 \alias{SMiXcan_assoc_test}
 \title{S-MiXcan Association Test with Shrinkage}
 \usage{
-SMiXcan_assoc_test(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family)
+SMiXcan_assoc_test(
+  W1,
+  W2,
+  gwas_results,
+  x_g,
+  ld_ref,
+  n0,
+  n1,
+  family = c("binomial", "gaussian")
+)
 }
 \arguments{
 \item{W1}{A p-by-1 matrix of weights for cell-type 1 (where p is the number of SNPs in the gene region).}
@@ -26,14 +35,11 @@ SMiXcan_assoc_test(W1, W2, gwas_results, x_g, ld_ref, n0, n1, family)
 \value{
 A list containing:
 \describe{
-  \item{p_1_sep}{P-value for cell-type 1 (separate model)}
-  \item{p_2_sep}{P-value for cell-type 2 (separate model)}
-  \item{p_sep}{Combined p-value from separate models (ACAT)}
+  \item{Z_1_join}{Z-score for cell-type 1 (joint model)}
   \item{p_1_join}{P-value for cell-type 1 (joint model)}
+  \item{Z_2_join}{Z-score for cell-type 2 (joint model)}
   \item{p_2_join}{P-value for cell-type 2 (joint model)}
   \item{p_join}{Combined p-value from joint model (ACAT)}
-  \item{Z_1_join}{Z-score for cell-type 1 (joint model)}
-  \item{Z_2_join}{Z-score for cell-type 2 (joint model)}
 }
 }
 \description{
