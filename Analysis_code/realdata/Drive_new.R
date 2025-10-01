@@ -28,7 +28,7 @@ drive_pheno = read.csv('Drive/oncoarray-drive.pheno.csv')
 mw_input_raw <- read.csv('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/MiXcan_model_weights_GTEx_v8_mammary_030323.tsv',header=TRUE)
 mw_input_raw <- mw_input_raw[, -c(1,2,3,8)]
 
-for(chr in 17:21){
+for(chr in 1:22){
 #rm(drive_genome)
 print("CHR")
 pprint(chr)
@@ -104,7 +104,7 @@ for (g in 1:length(drive_gene)) {
   # Calculate predicted gene expression value y
   y_predicted <- data.frame(matrix(ncol = 3, nrow = ncol(selected_snp)-17))
   colnames(y_predicted) = c('cell_0', 'cell_1','cell_2')
-  # colnames(y_predicted) = c('cell_1','cell_2')
+
   y_predicted$cell_0 <- rep(1,nrow(x_selected))
   y_predicted$cell_1 <- (as.matrix(x_selected) %*% as.matrix(selected_snp$weight_cell_1))[,1]
   y_predicted$cell_2 <- (as.matrix(x_selected) %*% as.matrix(selected_snp$weight_cell_2))[,1]

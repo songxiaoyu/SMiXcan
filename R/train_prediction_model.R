@@ -8,6 +8,8 @@
 #' @param y.train Gene expression levels in training data.
 #' @param x.train Genotype matrix in training data.
 #' @param pi.train Estimated cell-type proportions in training data.
+#' @param cov A N by Q matrix for the covariates adjusted in the model (e.g. age, population stratification).
+#' @param foldid Default is NULL. 10-fold cross-validation (CV) is used in our pipeline. A random split
 #'
 #' @return A list containing:
 #' \describe{
@@ -19,13 +21,19 @@
 #' @importFrom MiXcan MiXcan MiXcan_extract_weight
 #' @export
 
-train_prediction_model <- function(y.train, x.train, pi.train){
-  foldid_eg <- sample(1:10, length(y.train), replace=T)
+train_prediction_model <- function(y.train, x.train, pi.train, cov=NULL, foldid=NULL){
+  if(is.na(cov)){
+    cov <- data.frame('cov'=rep(0,n_train))
+  }
+  if(is.na(foldid)){
+    foldid <- sample(1:10, length(y.train), replace=T)
+  }
+
   n_train = nrow(x.train)
-  MiXcan_result <- MiXcan(y.train, x.train,
-                          cov = data.frame('cov'=rep(0,n_train)),
-                          pi.train,
-                          foldid = foldid_eg)
+  MiXcan_result <- MiXcan(y= y.train, x = x.train,
+                          pi = pi.train,
+                          cov = cov,
+                          foldid = foldid)
 
   # To get training weights
   W1 = matrix(MiXcan_result$beta.SNP.cell1[,2],ncol=1)
