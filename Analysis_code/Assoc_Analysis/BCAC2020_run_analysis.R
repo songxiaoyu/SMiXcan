@@ -6,12 +6,13 @@ library(glmnet)
 library(doParallel)
 library(doRNG)
 library(ACAT)
-library(MiXcan)
+library(SMiXcan)
 library(tibble)
 library(tidyr)
 library(dplyr)
 library(MASS)
 
+# STEP1: load data--------
 # Load MiXcan code
 setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder')
 lapply(list.files("code_MiXcan_updated", pattern = "\\.R$", full.names = TRUE), source)
@@ -68,21 +69,18 @@ for (gene in names(split_df)) {
 }
 
 # Estimate Z_0
-n_case <- 133384
-n_control <- 113789 + 18908
-D_vec <- c(rep(1, n_case), rep(0, n_control))
-y_0 <- rep(1, length(D_vec))
-ft_0 <- glm(D_vec ~ 0 + y_0, family = 'binomial')
-Z_0 <- coef(summary(ft_0))["y_0", 3]
+n0 <- 133384
+n1 <- 113789 + 18908
 
-# Run S-MiXcan
+# STEP2 Run S-MiXcan----
 G <- length(filtered_list)
-real_result <- data.frame(matrix(ncol = 6, nrow = G))
-colnames(real_result) <- c('p_s_sep_1', 'p_s_sep_2', 'p_s_sep', 'p_s_join_1', 'p_s_join_2', 'p_s_join')
+real_result = data.frame(matrix(ncol = 12, nrow = G))
+colnames(result) <- c('gene_name','chr','type','phenotype','celltype','MiXcan_snp_num','filtered_snp_num','Z_1_join','p_1_join','Z_2_join','p_2_join','p_join')
 
 
 for (g in 1:G) {
   gene = names(split_df)[g]
+  real_result[g, 'gene_name'] = gene
   cat("Processing gene:", gene, "\n")
   W <- filtered_list[[gene]]$W
   selected_snp_id <- filtered_list[[gene]]$selected_snp$rsid.x
@@ -91,25 +89,11 @@ for (g in 1:G) {
     se_Beta = filtered_list[[gene]]$selected_snp$SE.Gwas
   )
 
-  cov_x_g <- cov_ref[selected_snp_id, selected_snp_id, drop = FALSE]
-  x_g <- X_ref[, selected_snp_id, drop = FALSE]
+  cov_ref_filtered <- cov_ref[selected_snp_id, selected_snp_id, drop = FALSE]
+  x_ref_filtered <- X_ref[, selected_snp_id, drop = FALSE]
+  S_MiXcan_results <- SMiXcan_assoc_test(W1, W2, gwas_results, X_ref_filtered, cov_ref_filtered, n0=n0, n1=n1, family='binomial')
 
-  Y <- x_g %*% W
-  Y <-scale(Y)
-  Y <- cbind(1, Y)
-  colnames(Y) <- c("Y0", "Y1", "Y2")
-  YtY <- t(Y) %*% Y
-
-  S_MiXcan_results <- run_S_MiXcan_r(W[,1], W[,2], gwas_results, cov_x_g, YtY, 'binomial', Z_0)
-
-  real_result[g, ] <- c(
-    S_MiXcan_results$p_1_sep,
-    S_MiXcan_results$p_2_sep,
-    S_MiXcan_results$p_sep,
-    S_MiXcan_results$p_1_join,
-    S_MiXcan_results$p_2_join,
-    S_MiXcan_results$p_join
-  )
+  real_result[g, c('Z_1_join','p_1_join','Z_2_join','p_2_join','p_join')] <- S_MiXcan_results
 }
 
 real_result <- cbind(gene_name = names(filtered_list), real_result)
@@ -119,22 +103,4 @@ abline(0,1)
 write.csv(real_result, sprintf("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/Breast_Cancer_Risk_2020/bcac2020_chr%d_result_shrinked.csv", chr), row.names = FALSE)
 }
 
-chr = 2
-file = sprintf("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/bcac2020_result/bcac2020_chr%d_result_shrinked.csv", chr)
-file = '/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/DRIVE/drive_result_chr05.csv'
-result_chr2 <- read.csv(file)
-View(result_chr2)
-hist(result_chr2$p_s_join)
-hist(result_chr2$p_s_join, main = "P-value Distribution", xlab = "P-value", breaks = 50)
-hist(result_chr2$p_s_join, freq = FALSE, main = "P-value Distribution of chr2", xlab = "P-value", breaks = 50)
-abline(h = 1, col = "red", lty = 2)
-qqplot(-log10(runif(length(result_chr2$p_s_join))), -log10(result_chr2$p_s_join),
-       main = "QQ Plot of P-values",
-       xlab = "Expected -log10(P)",
-       ylab = "Observed -log10(P)")
-abline(0, 1, col = "red", lty = 2)
-
-chisq <- qchisq(1 - result_chr2$p_m_sep, df = 1)
-lambda <- median(chisq) / qchisq(0.5, df = 1)
-print(lambda)
 

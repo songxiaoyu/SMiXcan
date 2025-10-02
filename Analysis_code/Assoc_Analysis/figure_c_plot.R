@@ -1,3 +1,4 @@
+
 bcac_result<- read.csv("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/bcac2020_result/combined_with_cytoband.csv")
 head(bcac_results)
 # Extract p-values
@@ -7,6 +8,7 @@ pvals <- bcac_result$p_s_join
 expected <- -log10(ppoints(length(pvals)))
 observed <- -log10(sort(pvals))
 
+# run genome inflation 
 # Genomic inflation factor
 lambda <- 1.007253
 
@@ -31,18 +33,5 @@ dev.off()
 hist(bcac_result$p_s_join, breaks=50,
      main="Histogram of p-values", xlab="p-value", col="skyblue")
 
-library(ggplot2)
-
-ggplot(bcac_result, aes(x=Z_s_join_1, y=-log10(p_s_join))) +
-  geom_point(alpha=0.6) +
-  theme_minimal() +
-  labs(x="Z-score", y=expression(-log[10](italic(p))),
-       title="Volcano Plot: Cell-Type-Specific Associations in cell type 1")
-
-ggplot(bcac_result, aes(x=Z_s_join_2, y=-log10(p_s_join))) +
-  geom_point(alpha=0.6) +
-  theme_minimal() +
-  labs(x="Z-score", y=expression(-log[10](italic(p))),
-       title="Volcano Plot: Cell-Type-Specific Associations in cell type 2")
 
 
