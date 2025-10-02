@@ -39,11 +39,12 @@ train_prediction_model <- function(y.train, x.train, pi.train, cov=NULL, xNameMa
                           foldid = foldid)
 
   # To get training weights
-  W1 = matrix(MiXcan_result$beta.SNP.cell1[,2],ncol=1)
-  W2 = matrix(MiXcan_result$beta.SNP.cell2[,2],ncol=1)
+  W1 = matrix(MiXcan_result$beta.SNP.cell1[,'weight'],ncol=1)
+  W2 = matrix(MiXcan_result$beta.SNP.cell2[,'weight'],ncol=1)
 
   MiXcan_weight_result <- MiXcan_extract_weight(model = MiXcan_result)
-  selected_snp = as.numeric(substr(MiXcan_weight_result$xNameMatrix, 4, nchar(MiXcan_weight_result$xNameMatrix)))
+  slected_snp = MiXcan_weight_result$varID
+  #selected_snp = as.numeric(substr(MiXcan_weight_result$xNameMatrix, 4, nchar(MiXcan_weight_result$xNameMatrix)))
   results <- lst(W1, W2, selected_snp)
   return(results)
 }
