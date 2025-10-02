@@ -25,12 +25,12 @@
 #' @export
 
 train_prediction_model <- function(y.train, x.train, pi.train, cov=NULL, xNameMatrix = NULL, yName = NULL, foldid=NULL){
-  if(is.na(cov)){
-    cov <- data.frame('cov'=rep(0,n_train))
-  }
-  if(is.na(foldid)){
-    foldid <- sample(1:10, length(y.train), replace=T)
-  }
+#  if(is.na(cov)){
+#    cov <- data.frame('cov'=rep(0,n_train))
+#  }
+#  if(is.na(foldid)){
+#    foldid <- sample(1:10, length(y.train), replace=T)
+#  }
 
   n_train = nrow(x.train)
   MiXcan_result <- MiXcan(y= y.train, x = x.train,
