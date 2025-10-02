@@ -36,6 +36,7 @@ A list containing:
   \item{W1}{Weight vector for cell type 1}
   \item{W2}{Weight vector for cell type 2}
   \item{selected_snp}{Indices of selected SNPs}
+  \item{MiXcan_weight_result}{Total result matrix}
 }
 }
 \description{

@@ -19,19 +19,13 @@
 #'   \item{W1}{Weight vector for cell type 1}
 #'   \item{W2}{Weight vector for cell type 2}
 #'   \item{selected_snp}{Indices of selected SNPs}
+#'   \item{MiXcan_weight_result}{Total result matrix}
 #' }
 #'
 #' @importFrom MiXcan MiXcan MiXcan_extract_weight
 #' @export
 
 train_prediction_model <- function(y.train, x.train, pi.train, cov=NULL, xNameMatrix = NULL, yName = NULL, foldid=NULL){
-#  if(is.na(cov)){
-#    cov <- data.frame('cov'=rep(0,n_train))
-#  }
-#  if(is.na(foldid)){
-#    foldid <- sample(1:10, length(y.train), replace=T)
-#  }
-
   n_train = nrow(x.train)
   MiXcan_result <- MiXcan(y= y.train, x = x.train,
                           pi = pi.train,
@@ -39,12 +33,13 @@ train_prediction_model <- function(y.train, x.train, pi.train, cov=NULL, xNameMa
                           foldid = foldid)
 
   # To get training weights
-  W1 = matrix(MiXcan_result$beta.SNP.cell1[,'weight'],ncol=1)
-  W2 = matrix(MiXcan_result$beta.SNP.cell2[,'weight'],ncol=1)
+
 
   MiXcan_weight_result <- MiXcan_extract_weight(model = MiXcan_result)
-  slected_snp = MiXcan_weight_result$varID
+  W1 = matrix(MiXcan_weight_result[, 'weight_cell_1'])
+  W2 = matrix(MiXcan_weight_result[, 'weight_cell_2'])
+  selected_snp = MiXcan_weight_result$varID
   #selected_snp = as.numeric(substr(MiXcan_weight_result$xNameMatrix, 4, nchar(MiXcan_weight_result$xNameMatrix)))
-  results <- lst(W1, W2, selected_snp)
+  results <- lst(W1, W2, selected_snp, MiXcan_weight_result)
   return(results)
 }
