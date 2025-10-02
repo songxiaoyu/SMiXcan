@@ -4,7 +4,15 @@
 \alias{train_prediction_model}
 \title{Train Cell-Type-Specific Prediction Model Using MiXcan}
 \usage{
-train_prediction_model(y.train, x.train, pi.train, cov = NULL, foldid = NULL)
+train_prediction_model(
+  y.train,
+  x.train,
+  pi.train,
+  cov = NULL,
+  xNameMatrix = NULL,
+  yName = NULL,
+  foldid = NULL
+)
 }
 \arguments{
 \item{y.train}{Gene expression levels in training data.}
@@ -14,6 +22,11 @@ train_prediction_model(y.train, x.train, pi.train, cov = NULL, foldid = NULL)
 \item{pi.train}{Estimated cell-type proportions in training data.}
 
 \item{cov}{A N by Q matrix for the covariates adjusted in the model (e.g. age, population stratification).}
+
+\item{xNameMatrix}{Default is NULL. A matrix to save theX matrix information,
+such as variable ID, position, rsid, ref_allele, eff_allele.}
+
+\item{yName}{Default is NULL. A row vector to save the expression information, such as gene ID, gene name.}
 
 \item{foldid}{Default is NULL. 10-fold cross-validation (CV) is used in our pipeline. A random split}
 }
