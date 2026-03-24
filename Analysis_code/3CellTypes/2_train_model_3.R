@@ -1,6 +1,8 @@
-# Step3: Run MiXcan ------------------------------------------------------------------
+# Train the 3-cell-type MiXcan model on GTEx breast tissue ---------------------------
+
+# Package dependencies
 library(data.table)
-# library(xCell)
+library(xCell)
 library(tidyverse)
 library(janitor)
 library(SMiXcan)
@@ -11,37 +13,49 @@ library(janitor)
 library(tibble)
 library(doParallel)
 library(dplyr)
-library(SMiXcanK)
-# Set working path
+
+# Local working directory used for the original analysis
 setwd("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data")
-# Step 1: Load data---------------------
-# 1. Load and clean GTEx race data. Select only White people.
+
+# ------------------------------------------------------------------------------
+# 1. Sample selection and expression input
+# ------------------------------------------------------------------------------
+
+# Load GTEx race metadata and keep White participants only.
 gtex_race <- read_csv("gtex_v8_race.csv")
 gtex_white <- gtex_race %>% filter(RACE == "White") %>% pull(SUBJID)
 
-# 2. Load data and select breast cancer genes
+# Load breast tissue expression and keep the original object layout.
 cov = data.frame(fread("GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt"))
 breast = fread("Breast_Mammary_Tissue.v8.normalized_expression.bed") # Extract the expression data only to save space
-ensembl38 <-read_csv("ensembl38.txt") %>% clean_names()
-ensembl38 = unique(ensembl38[, c("gene_stable_id", "gene_name")])
-breast$gene_id2 = matrix(unlist(strsplit(breast$gene_id, '[.]')), ncol = 2, byrow = T)[, 1]
-breast2 = merge(ensembl38, breast, by.x = "gene_stable_id", by.y = "gene_id2")
-dup = unique(breast2[duplicated(breast2$gene_name), "gene_name"])
-breast3 = breast2[-which(breast2$gene_name %in% dup), ]
 
-# 3. Select breast cancer expression level for white female
-exprB = breast3[, colnames(breast3) %in% cov[which(cov$SEX == 2), "SUBJID"]] # We only need female data
+
+# Legacy gene-name harmonization block retained for reference.
+#ensembl38 <-read_csv("ensembl38.txt") %>% clean_names()
+#ensembl38 = unique(ensembl38[, c("gene_stable_id", "gene_name")])
+#breast$gene_id2 = matrix(unlist(strsplit(breast$gene_id, '[.]')), ncol = 2, byrow = T)[, 1]
+#breast2 = merge(ensembl38, breast, by.x = "gene_stable_id", by.y = "gene_id2")
+#dup = unique(breast2[duplicated(breast2$gene_name), "gene_name"])
+#breast3 = breast2[-which(breast2$gene_name %in% dup), ]
+
+# Keep breast-tissue expression for White female samples only.
+exprB = as.data.frame(breast)[, colnames(breast) %in% cov[which(cov$SEX == 2), "SUBJID"]] # We only need female data
+#exprB = breast3[, colnames(breast3) %in% cov[which(cov$SEX == 2), "SUBJID"]] # We only need female data
 exprB <- exprB %>% dplyr::select(intersect(names(exprB), gtex_white)) # only white
-rownames(exprB) = breast3$gene_id
+rownames(exprB) = breast$gene_id
 dim(exprB)
 
-# 4. load pi estimation results
+# Load estimated 3-cell-type proportions.
 pis<- read.csv("/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Data/BayesDeBulk_3CT_GTEx/BayesDeBulk_pi_3ct_GTEx.tsv",
-               sep = "\t", header = TRUE)
+                     sep = "\t", header = TRUE)
 
-pis_new <- pis[, c('SampleID','Epi')]
-pis_new$Other <- 1- pis_new$Epi
-# 5. load GTEx covariate data
+#pis_old <- read_csv("pi_GTEx.csv") %>% as.data.frame()
+
+# ------------------------------------------------------------------------------
+# 2. Covariates and genotype input
+# ------------------------------------------------------------------------------
+
+# Load GTEx covariates and keep the samples used above.
 
 cov1=data.frame(fread("phs000424.v8.pht002742.v8.p2.c1.GTEx_Subject_Phenotypes.GRU.txt"))
 cov0=cov1[,c("SUBJID", "AGE")]
@@ -57,11 +71,11 @@ cov <- cov%>%
   select(!sex)
 
 
-# 6. load genotype
+# Load genotype data for the selected samples.
 geno1=fread("shapeit_data_for_predictdb_variants-r2") # 178698    847
 geno=geno1[,c(1:9,match(cov[,1], colnames(geno1))), with=F]
 
-# 7. elastic net model output
+# Load the reference elastic-net model used to define cis-SNP sets.
 filename <- "en_Breast_Mammary_Tissue.db"
 library(DBI)
 sqlite.driver <- dbDriver("SQLite")
@@ -72,23 +86,27 @@ ENextra$gene_id <- matrix(unlist(strsplit(ENextra$gene, '[.]')), ncol = 2, byrow
 ENweights <- dbReadTable(ElasticNet,"weights")
 ENweights$gene_id <- matrix(unlist(strsplit(ENweights$gene, '[.]')), ncol = 2, byrow = T)[, 1]
 # overlapping genes
-genID=genID1=intersect(ENextra$gene, breast3$gene_id)
+genID=genID1=intersect(ENextra$gene, breast$gene_id)
+
+tmp=setdiff(ENextra$gene, breast3$gene_id)
 G = length(genID)
 G#G  6443 correct
 
 
-# STEP 2: Model training -----
-# run (S)-MiXcan GTEx training - fix seed.
+# ------------------------------------------------------------------------------
+# 3. Gene-by-gene model training
+# ------------------------------------------------------------------------------
+
+# Run the 3-cell-type MiXcan training loop with a fixed CV seed per gene.
 
 
 result <- vector("list", G)
 res_weights_all <- vector("list", length = G)
 
-# main loop
-#G
+# Main loop across genes.
 for (j in 1:G){
   print(j)
-  # Process gene j
+  # Current gene and its SNP annotation in the elastic-net reference model.
   yName=genID[j]
   gene = ENextra[which(ENextra$gene == yName), "genename"]
   xName=ENweights[which(ENweights$gene==yName), "varID"]
@@ -96,18 +114,20 @@ for (j in 1:G){
   xName.all=ENweights[which(ENweights$gene==yName), c("gene", "rsid", "varID", "ref_allele", "eff_allele")]
   nName=cov$"SUBJID" # women
   n=length(nName)
-  # Match the sample ID and select SNPs in this gene for input data
+
+  # Align expression, genotype, covariates, and cell-type proportions by sample ID.
   yData=t(exprB[which(rownames(exprB)==yName), match(nName, colnames(exprB))])
   xData=t(geno[match(xName, geno$ID), match(nName, colnames(geno)), with=F])
   zData=cov[match(nName, cov$SUBJID),-1]; zData=zData[,-ncol(zData)]
-  piData=pis_new[match(nName, pis_new$SampleID),2:3]
+  piData=pis[match(nName, pis$SampleID),2:4]
 
   class(xData)<-"numeric"
-  # Ignore NaN
+
+  # Keep samples with complete genotype and expression data.
   cp.idx=complete.cases(xData) & complete.cases(yData)
 
-  #For each SNP (column), compute the mean genotype across samples in cp.idx, keep SNPs with mean > 0.05, and return those columns for the selected rows.
-  #If px == 1 (only one SNP), it computes the mean across cp.idx and keeps it if the mean > 0.05; otherwise drops it.
+  # Keep SNPs with mean genotype > 0.05 among complete samples.
+  # Handle the single-SNP case separately so matrix dimensions stay valid.
   px=ncol(xData)
   if (px>1) {
     xvar0=which(apply(xData[cp.idx,], 2, function(f) mean(f)>0.05))
@@ -120,7 +140,7 @@ for (j in 1:G){
   }
   if (ncol(x.complete) == 0 ||is.null(nrow(x.complete))) {next}
 
-  #Based on cp.idx(sample ID without NaN)
+  # Build the final inputs after filtering to complete samples.
   px2=ncol(x.complete)
   z.complete=zData[cp.idx,]
   xz.complete=as.matrix(cbind(x.complete, z.complete))
@@ -128,52 +148,60 @@ for (j in 1:G){
   pi.complete=piData[cp.idx, ]
   length(y.complete)
   pz=ncol(z.complete)
-  # Set Seed 10 fold cross validation
+
+  # Create a reproducible 10-fold CV split for this gene.
   set.seed(1334 + j*149053)
   foldid= sample(1:10, length(y.complete), replace=T)
 
-  # MiXcan method
-  # to fix this using training_prediction_model
+  # Fit the 3-cell-type MiXcan model and store the resulting SNP weights.
+  # The older train_prediction_model call is kept below for reference.
   #ft.sym=SMiXcan::train_prediction_model(y.train=y.complete, x.train=x.complete, pi.train=pi.complete,cov=z.complete, xNameMatrix=xName.all[xvar0,], foldid=foldid)
   ft.sym <- tryCatch({
-    # Attempt to run the function
-    ft.sym  <- MiXcan_train_K_symmetric(
+    # Main model fit.
+    ft.sym  <- MiXcan_train_K(
       y = y.complete,
       x = x.complete,
       pi_k = pi.complete,
       cov = z.complete,
       xNameMatrix = xName.all[xvar0,],
       foldid = foldid,
-      alpha = 0.5
+      alpha = 0.2
     )
     w1 <- ft.sym$beta.SNP.by.cell$Cell1
     w2 <- ft.sym$beta.SNP.by.cell$Cell2
-    w <- cbind(w1, w2$weight)
-    colnames(w)[6:7] <- c('weight_cell_1', 'weight_cell_2')
+    w3 <- ft.sym$beta.SNP.by.cell$Cell3
+    w <- cbind(w1, w2$weight, w3$weight)
+    colnames(w)[6:8] <- c('weight_cell_1', 'weight_cell_2', 'weight_cell_3')
     w$type = ft.sym$type
     if (nrow(w)) res_weights_all[[j]] <- w
   }, error = function(e) {
-    # If an error is caught, print a message and return a placeholder result
+    # Skip failed genes without stopping the full training loop.
     cat("MiXcan_train_K_symmetric failed for this gene. Error:", conditionMessage(e), "\n")
 
-    # Return a dummy list structure (or NULL) to prevent the main script from crashing
+    # Return a placeholder object so the outer loop can continue.
     return(list(
       type = "ErrorSkipped",
       weight.matrix = NULL,
       beta.all.models = NULL
     ))
   })
+  # ft.sym = MiXcan_train_K_symmetric_ROBUST(y=y.complete, x=x.complete, pi_k=pi.complete,cov=z.complete, xNameMatrix=xName.all[xvar0,], foldid=foldid)
+  # MiXcan::MiXcan(y=y.complete, x=x.complete, pi=pi.complete,cov=z.complete, xNameMatrix=xName.all[xvar0,], foldid=foldid)
+  # combine weights for both cells on the same SNP rows
 
   if (j %% 200 == 0) cat("Processed", j, "genes\n")
 }
 
-#  bind & save after loop
+# ------------------------------------------------------------------------------
+# 4. Combine and save gene-level weights
+# ------------------------------------------------------------------------------
+
 weights_final <- bind_rows(res_weights_all)
 filtered_weights <- weights_final[
-  weights_final$weight_cell_1 != 0 | weights_final$weight_cell_2 != 0,
+  weights_final$weight_cell_1 != 0 | weights_final$weight_cell_2 != 0 | weights_final$weight_cell_3 != 0,
 ]
-write_csv(filtered_weights, "weights_miXcan_full_pi2.csv")
-pi3 <- read_csv('weights_miXcan_full_pi3.csv')
+write_csv(filtered_weights, "weights_miXcan_full_pi3_alpha02.csv")
+
+# Quick inspection of the combined weight table.
 print(dim(weights_final))
 head(weights_final, 10)
-

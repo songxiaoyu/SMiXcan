@@ -186,8 +186,8 @@ for(chr in 2:22){
 
   # STEP2 Run S-MiXcan----
   G <- length(filtered_list)
-  real_result = data.frame(matrix(ncol = 10, nrow = G))
-  colnames(real_result) <- c('gene_name','gene_id','chr','type','input_snp_num','Z_1','p_1','Z_2','p_2','p_join')
+  real_result = data.frame(matrix(ncol = 9, nrow = G))
+  colnames(real_result) <- c('gene_id','chr','type','input_snp_num','Z_1','p_1','Z_2','p_2','p_join')
   real_result$chr <- chr
 
   for (g in 1:G) {
@@ -202,7 +202,7 @@ for(chr in 2:22){
     )
     X_ref_filtered <- X_ref[, selected_snp_id, drop = FALSE]
     S_MiXcan_results <- SMiXcan_assoc_test_K(W, gwas_results, X_ref_filtered, n0=n0, n1=n1, family='binomial')
-    real_result[g, c('gene_name','gene_id','chr', 'type', 'input_snp_num')] =c(filtered_list[[gene]]$selected_snp[1,c('gene','varID','CHR','type')], nrow(W))
+    real_result[g, c('gene_id','chr', 'type', 'input_snp_num')] =c(filtered_list[[gene]]$selected_snp[1,c('gene','CHR','type')], nrow(W))
     real_result[g, c('Z_1','p_1','Z_2','p_2','p_join')] <- c(c(rbind(S_MiXcan_results$Z_join, S_MiXcan_results$p_join_vec)), S_MiXcan_results$p_join)
   }
 
