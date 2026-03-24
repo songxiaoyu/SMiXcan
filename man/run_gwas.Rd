@@ -2,7 +2,7 @@
 % Please edit documentation in R/genome_wide.R
 \name{run_gwas}
 \alias{run_gwas}
-\title{Run Single-SNP GWAS (Gaussian or Binomial)}
+\title{Run a single-SNP GWAS scan}
 \usage{
 run_gwas(
   X,
@@ -13,15 +13,16 @@ run_gwas(
 )
 }
 \arguments{
-\item{X}{Numeric matrix of genotypes (n samples × p SNPs).}
+\item{X}{Numeric genotype matrix with samples in rows and SNPs in columns.}
 
-\item{D}{Numeric phenotype vector of length n.}
+\item{D}{Numeric phenotype vector of length \code{n}.}
 
-\item{family0}{Model family: \code{gaussian()} or \code{binomial()}.}
+\item{family0}{Model family, either \code{gaussian()} or \code{binomial()}.}
 
-\item{covar}{Optional matrix/data.frame of covariates (n × q).}
+\item{covar}{Optional matrix or data frame of covariates.}
 
-\item{method_binomial}{Character. Either \code{"score"} (fast) or \code{"glm"}.}
+\item{method_binomial}{Character string, either \code{"score"} or
+\code{"glm"}.}
 }
 \value{
 A data.frame with columns:
@@ -33,12 +34,13 @@ A data.frame with columns:
 }
 }
 \description{
-Performs univariate GWAS for each SNP in matrix \code{X}.
-Supports quantitative traits (Gaussian) and case-control traits (Binomial).
+This function performs univariate association testing for each SNP in
+\code{X}. It supports both quantitative traits and case-control outcomes.
 }
 \details{
-For Gaussian traits, a fast residualization-based approach is used.
-For Binomial traits, either per-SNP GLM or a score test can be used.
+For Gaussian traits, the implementation uses a fast residualization-based
+approach. For binomial traits, either per-SNP GLM fitting or a score test
+can be used.
 }
 \examples{
 n <- 100

@@ -2,7 +2,7 @@
 % Please edit documentation in R/MiXcan_updated.R
 \name{MiXcan_assoc_test}
 \alias{MiXcan_assoc_test}
-\title{Cell-Type-Aware Association with Shrinkage}
+\title{Cell-type-aware association test for two predicted expression traits}
 \usage{
 MiXcan_assoc_test(
   outcome,
@@ -13,21 +13,24 @@ MiXcan_assoc_test(
 )
 }
 \arguments{
-\item{outcome}{A binary phenotype vector (0/1 or factor).}
+\item{outcome}{Numeric or factor phenotype vector.}
 
-\item{cell1}{y predicted for cell type1.}
+\item{cell1}{Numeric vector of predicted expression for cell type 1.}
 
-\item{cell2}{y predicted for cell type2.}
+\item{cell2}{Numeric vector of predicted expression for cell type 2.}
 
-\item{family}{'binomial' or 'gaussian'}
+\item{family}{Either \code{"binomial"} or \code{"gaussian"}.}
 
-\item{rho_thr}{threshold where choose sep model}
+\item{rho_thr}{Correlation threshold above which the function uses the
+separate-model fallback.}
 }
 \value{
-A data frame containing effect size estimates, standard errors, and p-values for both cell types,
-and a combined p-value from ACAT.
+A list containing cell-type-specific effect estimates, standard
+errors, p-values, a combined ACAT p-value, and the fitting mode used.
 }
 \description{
-This function performs cell-type-aware association analysis with penalization. It estimates the individual and combined p-values for
-predicted gene expressions (e.g., from cell type 1 and cell type 2).
+This function performs a two-cell-type association analysis using predicted
+expression values from two cell types. When the two predictors are nearly
+collinear, it falls back to separate univariate models; otherwise it
+applies the shrinkage-based joint test used by MiXcan.
 }

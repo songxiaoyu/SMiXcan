@@ -1,11 +1,11 @@
-#' Safe Wrapper for ACAT P-value Combination
+#' Safely combine p-values with ACAT
 #'
-#' This function computes a combined p-value using the ACAT method while handling possible numerical or input errors.
-#' If an error occurs during computation, the function returns \code{NA} and prints an informative message.
+#' This helper wraps \code{ACAT::ACAT()} and returns \code{NA} instead of
+#' stopping if ACAT fails because of numerical or input issues.
 #'
-#' @param p_values A numeric vector of p-values to be combined using the ACAT method.
+#' @param p_values Numeric vector of p-values to combine.
 #'
-#' @return A single numeric value: the combined p-value (or \code{NA} if ACAT fails).
+#' @return A single combined p-value, or \code{NA} if ACAT fails.
 #'
 #' @importFrom ACAT ACAT
 #' @export
@@ -19,24 +19,28 @@ safe_ACAT <- function(p_values) {
 }
 
 
-#' @title Cell-Type-Aware Association with Shrinkage
+#' Cell-type-aware association test for two predicted expression traits
 #'
-#' @description
-#' This function performs cell-type-aware association analysis with penalization. It estimates the individual and combined p-values for
-#' predicted gene expressions (e.g., from cell type 1 and cell type 2).
-#' @param outcome A binary phenotype vector (0/1 or factor).
-#' @param cell1 y predicted for cell type1.
-#' @param cell2 y predicted for cell type2.
-#' @param family 'binomial' or 'gaussian'
-#' @param rho_thr threshold where choose sep model
-#' @return A data frame containing effect size estimates, standard errors, and p-values for both cell types,
-#'         and a combined p-value from ACAT.
+#' This function performs a two-cell-type association analysis using predicted
+#' expression values from two cell types. When the two predictors are nearly
+#' collinear, it falls back to separate univariate models; otherwise it
+#' applies the shrinkage-based joint test used by MiXcan.
+#'
+#' @param outcome Numeric or factor phenotype vector.
+#' @param cell1 Numeric vector of predicted expression for cell type 1.
+#' @param cell2 Numeric vector of predicted expression for cell type 2.
+#' @param family Either \code{"binomial"} or \code{"gaussian"}.
+#' @param rho_thr Correlation threshold above which the function uses the
+#'   separate-model fallback.
+#'
+#' @return A list containing cell-type-specific effect estimates, standard
+#'   errors, p-values, a combined ACAT p-value, and the fitting mode used.
 #' @importFrom stats model.matrix glm binomial na.omit
 #' @importFrom dplyr select bind_cols mutate
 #' @export
 MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
                                    rho_thr = 0.999999) {
-  # coerce to numeric vectors (IMPORTANT: outcome as vector, not matrix)
+  # Coerce inputs to numeric vectors.
   y  <- as.numeric(outcome)
   y1 <- as.numeric(cell1)
   y2 <- as.numeric(cell2)
@@ -49,11 +53,11 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
                 p_combined=NA, mode="empty"))
   }
 
-  # standardize predictors
+  # Standardize the predicted-expression inputs.
   Ys <- scale(as.matrix(df[, c("Y1","Y2")]), center = TRUE, scale = TRUE)
   colnames(Ys) <- c("Y1","Y2")
 
-  # null/intercept-only logistic => Z0
+  # Null intercept-only model used to form the baseline z-score.
   fit0 <- glm(df$outcome ~ 1, family = family)
   if (family == "gaussian") {
     Z0 <- coef0["(Intercept)", "t value"]
@@ -61,13 +65,13 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
     Z0 <- coef0["(Intercept)", "z value"]
   }
 
-  # separate univariate logistic z/p
+  # Fit separate one-predictor models for the fallback path.
   f1 <- glm(df$outcome ~ Ys[, "Y1"], family = family)
   f2 <- glm(df$outcome ~ Ys[, "Y2"], family = family)
   s1 <- summary(f1)$coefficients
   s2 <- summary(f2)$coefficients
 
-  # robust extraction of z/est/se
+  # Extract estimates, standard errors, z-scores, and p-values safely.
   get_stats <- function(s, idx = 2L) {
     if (nrow(s) >= 2L && all(c("Estimate","Std. Error") %in% colnames(s))) {
       est <- s[idx, "Estimate"]; se <- s[idx, "Std. Error"]
@@ -78,11 +82,11 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
   }
   g1 <- get_stats(s1); g2 <- get_stats(s2)
 
-  # correlation check
+  # Check whether the two predictors are nearly collinear.
   rho <- suppressWarnings(stats::cor(Ys[,1], Ys[,2]))
   if (!is.finite(rho)) rho <- 0
 
-  # (1) Fallback if near-singular
+  # Fallback to separate models if the design is nearly singular.
   if (abs(rho) > rho_thr) {
     p_comb <- safe_ACAT(c(g1["p"], g2["p"]))
     return(list(
@@ -106,7 +110,7 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
   p2 <- 2 * stats::pnorm(abs(Z2_join), lower.tail = FALSE)
   p_comb <- safe_ACAT(c(p1, p2))
 
-  # also return estimates/SEs from the bivariate fit (optional)
+  # Return estimates and SEs from the joint two-predictor fit.
   fit_biv <- glm(df$outcome ~ Ys, family = family)
   sb <- summary(fit_biv)$coefficients
   est1 <- if ("YsY1" %in% rownames(sb)) sb["YsY1","Estimate"] else NA_real_
@@ -120,4 +124,3 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
     p_combined = p_comb
   )
 }
-

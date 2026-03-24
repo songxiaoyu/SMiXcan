@@ -14,30 +14,34 @@ SMiXcan_assoc_test_K(
 )
 }
 \arguments{
-\item{W}{A p-by-k matrix of cell-type level weights  (where p is the number of SNPs in the gene region, k is the number of cell types).}
+\item{W}{Numeric p-by-K matrix of cell-type-specific SNP weights, where
+p is the number of SNPs and K is the number of cell types.}
 
-\item{gwas_results}{A list containing GWAS summary statistics, with components \code{Beta} and \code{se_Beta}.}
+\item{gwas_results}{List containing GWAS summary statistics with elements
+\code{Beta} and \code{se_Beta}.}
 
-\item{x_g}{A genotype matrix for the reference panel (individuals * SNPs).}
+\item{x_g}{Reference-panel genotype matrix with individuals in rows and
+SNPs in columns.}
 
 \item{n0}{Number of controls.}
 
 \item{n1}{Number of cases.}
 
-\item{family}{Either \code{"binomial"} or \code{"gaussian"} (used for fitting the null model).}
+\item{family}{Either \code{"binomial"} or \code{"gaussian"}.}
 }
 \value{
 A list containing:
 \describe{
-\item{Z_join}{Z-score for cell-type 1 to K (joint model)}
-\item{p_join_vec}{P-value for cell-type 1 to K (joint model)}
-\item{p_join}{Combined p-value from joint model (ACAT)}
+\item{Z_join}{Vector of per-cell-type joint Z-scores.}
+\item{p_join_vec}{Vector of per-cell-type joint p-values.}
+\item{p_join}{Combined ACAT p-value across the K cell types.}
 }
 }
 \description{
-S-MiXcan Association Test with Shrinkage
+Run the K-cell-type S-MiXcan association test
 }
 \details{
-Performs the S-MiXcan association test using GWAS summary statistics and reference genotype data,
-applying shrinkage-based regularization to stabilize inverse covariance estimation.
+This function combines cell-type-specific prediction weights, GWAS summary
+statistics, and a reference genotype panel to compute per-cell-type joint
+association statistics.
 }

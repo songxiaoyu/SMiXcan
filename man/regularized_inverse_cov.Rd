@@ -7,7 +7,7 @@
 regularized_inverse_cov(X)
 }
 \arguments{
-\item{X}{A numeric covariance matrix.}
+\item{X}{Numeric covariance matrix.}
 }
 \value{
 A list containing:
@@ -17,8 +17,9 @@ A list containing:
 }
 }
 \description{
-Regularized Inverse of a Covariance Matrix
+Compute a regularized inverse covariance matrix
 }
 \details{
-Computes a regularized inverse of a covariance matrix using correlation shrinkage.
+This helper stabilizes covariance-matrix inversion by applying a simple
+correlation-based shrinkage step before inversion.
 }

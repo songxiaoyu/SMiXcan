@@ -42,7 +42,7 @@
 #' Example merged table for PRIMO post-processing
 #'
 #' A toy results table with marginal p-values per cell type, a joint p-value, and
-#' a specificity label, used to demonstrate `primo_pipeline_wrap()`.
+#' a specificity label, used to demonstrate `infer_celltype_patterns()`.
 #'
 #' @format A data.frame.
 #' @source Included with the SMiXcanK package.
@@ -67,4 +67,3 @@
 #' @source Simulated example data
 #'
 "pi_k"
-

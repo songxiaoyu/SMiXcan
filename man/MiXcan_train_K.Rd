@@ -2,7 +2,7 @@
 % Please edit documentation in R/mixcan_train_k.R
 \name{MiXcan_train_K}
 \alias{MiXcan_train_K}
-\title{Estimate cell-type-level prediction weights for a gene (symmetric K-cell MiXcan)}
+\title{Train symmetric K-cell MiXcan weights for a single gene}
 \usage{
 MiXcan_train_K(
   y,
@@ -59,7 +59,7 @@ This is the matrix used directly in \code{SMiXcan_assoc_test_K()}.}
 }
 }
 \description{
-This function generalizes the original MiXcan two–cell-type model to
+This function generalizes the original MiXcan two-cell-type model to
 K cell types using a symmetric mean + contrast parameterization.
 Gene expression is modeled as a linear combination of:
 (i) shared SNP effects across all cell types,

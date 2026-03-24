@@ -1,11 +1,12 @@
-#' Regularized Inverse of a Covariance Matrix
+#' Compute a regularized inverse covariance matrix
 #'
-#' Computes a regularized inverse of a covariance matrix using correlation shrinkage.
+#' This helper stabilizes covariance-matrix inversion by applying a simple
+#' correlation-based shrinkage step before inversion.
 #'
 #' @name regularized_inverse_cov
 #' @title Regularized Covariance Matrix Inversion
 #'
-#' @param X A numeric covariance matrix.
+#' @param X Numeric covariance matrix.
 #'
 #' @return A list containing:
 #' \describe{
@@ -36,24 +37,28 @@ regularized_inverse_cov <- function(X) {
   ))
 }
 
-#' S-MiXcan Association Test with Shrinkage
+#' Run the K-cell-type S-MiXcan association test
 #'
-#' Performs the S-MiXcan association test using GWAS summary statistics and reference genotype data,
-#' applying shrinkage-based regularization to stabilize inverse covariance estimation.
+#' This function combines cell-type-specific prediction weights, GWAS summary
+#' statistics, and a reference genotype panel to compute per-cell-type joint
+#' association statistics.
 #' @name SMiXcan_assoc_test_K
 #' @title  S-MiXcan Association Test in K cell types
 #'
-#' @param W A p-by-k matrix of cell-type level weights  (where p is the number of SNPs in the gene region, k is the number of cell types).
-#' @param gwas_results A list containing GWAS summary statistics, with components \code{Beta} and \code{se_Beta}.
-#' @param x_g A genotype matrix for the reference panel (individuals * SNPs).
+#' @param W Numeric p-by-K matrix of cell-type-specific SNP weights, where
+#'   p is the number of SNPs and K is the number of cell types.
+#' @param gwas_results List containing GWAS summary statistics with elements
+#'   \code{Beta} and \code{se_Beta}.
+#' @param x_g Reference-panel genotype matrix with individuals in rows and
+#'   SNPs in columns.
 #' @param n0 Number of controls.
 #' @param n1 Number of cases.
-#' @param family Either \code{"binomial"} or \code{"gaussian"} (used for fitting the null model).
+#' @param family Either \code{"binomial"} or \code{"gaussian"}.
 #' @return A list containing:
 #' \describe{
-#'   \item{Z_join}{Z-score for cell-type 1 to K (joint model)}
-#'   \item{p_join_vec}{P-value for cell-type 1 to K (joint model)}
-#'   \item{p_join}{Combined p-value from joint model (ACAT)}
+#'   \item{Z_join}{Vector of per-cell-type joint Z-scores.}
+#'   \item{p_join_vec}{Vector of per-cell-type joint p-values.}
+#'   \item{p_join}{Combined ACAT p-value across the K cell types.}
 #' }
 #'
 #' @importFrom tibble lst
@@ -66,7 +71,7 @@ SMiXcan_assoc_test_K <- function(W,
                                  family = c("binomial", "gaussian")) {
   family <- match.arg(family)
 
-  # ---- Inputs and basic checks ----
+  # ---- Input checks ----
   Beta    <- as.numeric(gwas_results$Beta)
   se_Beta <- as.numeric(gwas_results$se_Beta)
 
@@ -86,7 +91,7 @@ SMiXcan_assoc_test_K <- function(W,
   cov_x <- stats::var(x_g)           # p * p LD (covariance) matrix
   sig_l <- sqrt(diag(cov_x))         # per-SNP SD
 
-  # ---- Separate-component Z for each cell type ----
+  # ---- Separate component Z-scores for each cell type ----
   Z_sep <- rep(NA_real_, K)
   for (k in seq_len(K)) {
     wk <- W[, k]
@@ -105,20 +110,20 @@ SMiXcan_assoc_test_K <- function(W,
     2 * stats::pnorm(abs(Z_sep), lower.tail = FALSE)
   )
 
-  # Default joint outputs = separate
+  # Start from the separate-model result and overwrite if the joint step is stable.
   Z_join     <- Z_sep
   p_join_vec <- p_sep
   mode       <- "separate"
 
-  # ---- Joint test(s) ----
+  # ---- Joint test ----
   if (family == "binomial") {
-    # 1. Null intercept-only logistic => Z0
+    # 1. Fit the null intercept-only logistic model.
     D   <- c(rep(1L, n1), rep(0L, n0))
     fit0 <- stats::glm(D ~ 1, family = stats::binomial())
     coef0 <- summary(fit0)$coefficients
     Z0    <- coef0["(Intercept)", "z value"]
 
-    # 2. Predicted expression for each cell type
+    # 2. Build predicted expression for each cell type.
     Yhat <- x_g %*% W             # n * K
     Y_scaled <- scale(Yhat)       # standardize columns
     Y <- cbind(1, Y_scaled)       # [Intercept, cell-type 1..K]
@@ -127,10 +132,10 @@ SMiXcan_assoc_test_K <- function(W,
     YtY   <- crossprod(Y)         # (K+1) * (K+1)
     Omega <- diag(YtY)
 
-    # Correlation matrix on the Y scale
+    # Correlation matrix on the predictor scale.
     corY <- stats::cov2cor(YtY)
 
-    # Near-singularity check: any cor > threshold
+    # Skip the joint step when the predictor correlation is too close to singular.
     if (!any(is.na(corY)) &&
         !any(abs(corY[upper.tri(corY)]) > 0.999999)) {
 
@@ -147,7 +152,7 @@ SMiXcan_assoc_test_K <- function(W,
     }
 
   } else if (family == "gaussian") {
-    # Gaussian joint step uses only cell-type components (no intercept)
+    # Gaussian joint step uses only the cell-type predictors.
     Yhat <- x_g %*% W
     Y_scaled <- scale(Yhat)             # n * K
     colnames(Y_scaled) <- paste0("Y", seq_len(K))
@@ -181,5 +186,4 @@ SMiXcan_assoc_test_K <- function(W,
     p_join    = p_join
   )
 }
-
 

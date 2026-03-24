@@ -1,20 +1,20 @@
 
-# SMiXcan: Cell-type–aware TWAS from Bulk Transcriptomics Using GWAS Summary Statistics for K Cell Types
+# SMiXcanK: Cell-type-aware TWAS from bulk transcriptomics using GWAS summary statistics
 
-**SMiXcan** is a summary statistics-based, cell-type-aware TWAS
-framework that infers associations between disease risk and predicted
-cell-type-specific expression using only GWAS summary statistics.
+**SMiXcanK** is a summary-statistics-based, cell-type-aware TWAS
+framework for studying how genetically predicted expression relates to
+disease risk across multiple cell types.
 
-This document demonstrates the **basic SMiXcan workflow** in four steps
-using **small example data included in the package**. The example is
-intended to illustrate **how to run the functions**, not to produce
-biological conclusions.
+This document walks through the basic SMiXcanK workflow using the small
+example datasets bundled with the package. The goal is to show the
+expected inputs and outputs for each function, not to support biological
+interpretation.
 
 ------------------------------------------------------------------------
 
 ## Overview of the workflow
 
-The SMiXcan pipeline consists of four modular steps:
+The SMiXcanK pipeline consists of four modular steps:
 
 1.  Estimate cell-type fractions from bulk expression
 2.  Train cell-type–specific gene expression prediction models
@@ -25,9 +25,9 @@ Each step corresponds to one exported function.
 
 ------------------------------------------------------------------------
 
-## Package Installation
+## Installation
 
-With R, users can install the SMiXcan package directly from GitHub with
+With R, users can install the SMiXcanK package directly from GitHub with
 [devtools](https://github.com/hadley/devtools):
 
 ``` r
@@ -40,9 +40,8 @@ devtools::install_github("songxiaoyu/SMiXcanK")
 ## Step 1: Estimate cell-type fractions (Optional)
 
 Cell-type fractions represent the proportion of each cell type
-contributing to each bulk RNA-seq sample. These fractions can be
-estimated from marker genes. This step is optional. Users can use their
-own cell-type proportion estimates instead.
+contributing to each bulk RNA-seq sample. This step is optional because
+users may already have their own estimated cell-type proportions.
 
 ### Parameters
 
@@ -101,7 +100,13 @@ head(markers_example)
     ## [1] "Gene4" "Gene5" "Gene6"
 
 ``` r
-res_pi <- pi_estimation_K(exprB = exprB_example, markers = markers_example, seed = 1, n.iter = 1000, burn.in = 200)
+res_pi <- pi_estimation_K(
+  exprB = exprB_example,
+  markers = markers_example,
+  seed = 1,
+  n.iter = 1000,
+  burn.in = 200
+)
 head(res_pi$cell_fraction)
 ```
 
@@ -136,9 +141,7 @@ expression to vary across cell types using a symmetric parameterization.
 - `yName` Optional gene identifier.
 
 ``` r
-data(x_example)
-data(y_example)
-data(pi_k)
+data(x_example, y_example, pi_k)
 
 set.seed(1)
 foldid <- sample(rep(1:4, length.out = nrow(x_example)))
@@ -177,24 +180,31 @@ fit$W
 The object `fit` returned by `MiXcan_train_K()` is a list containing:
 
 - `type`
-
-  - “CellTypeSpecific”
-  - “NonSpecific”
-  - “NoPredictor”
+  Model classification: `"CellTypeSpecific"`, `"NonSpecific"`, or
+  `"NoPredictor"`.
 
 - `beta.SNP.by.cell`
+  SNP weights returned separately for each cell type.
 
 - `beta.all.models`
+  Coefficients from the tissue-level model and the cell-type-specific
+  models.
 
 - `W`
+  Cell-type-specific SNP weight matrix used in downstream association
+  testing.
 
 - `glmnet.cell`
+  Fitted penalized model for the K-cell-type regression.
 
 - `glmnet.tissue`
+  Fitted tissue-level baseline model.
 
 - `yName`
+  Returned gene label.
 
 - `xNameMatrix`
+  Returned SNP annotation.
 
 ------------------------------------------------------------------------
 
@@ -206,10 +216,19 @@ with GWAS summary statistics while accounting for LD.
 ### Parameters
 
 - `W`
+  Cell-type-specific SNP weight matrix from `MiXcan_train_K()`.
+
 - `gwas_results`
+  GWAS summary statistics with `Beta` and `se_Beta`.
+
 - `x_g`
+  Reference-panel genotype matrix.
+
 - `n0`, `n1`
+  Numbers of controls and cases.
+
 - `family`
+  Outcome type, either `"binomial"` or `"gaussian"`.
 
 ``` r
 W <- fit$W
@@ -238,8 +257,11 @@ res_assoc
 ### Output of `SMiXcan_assoc_test_K()`
 
 - `Z_join`
+  Joint Z-scores for each cell type.
 - `p_join_vec`
+  Joint p-values for each cell type.
 - `p_join`
+  Combined ACAT p-value across cell types.
 
 ### Interpretation
 
@@ -251,7 +273,7 @@ res_assoc
 
 ## Step 4: PRIMO-based cell-type association pattern classification (optional)
 
-After running SMiXcan genome-wide, we may wish to classify significant
+After running SMiXcanK genome-wide, we may wish to classify significant
 genes into cell-type association patterns using a PRIMO-based framework.
 
 This step:
@@ -262,9 +284,6 @@ This step:
 4.  Assigns MAP patterns among non-null configurations
 
 ``` r
-library(SMiXcanK)
-
-# Load example merged results
 data(merged_example)
 
 head(merged_example)
@@ -279,7 +298,7 @@ head(merged_example)
     ## 6 Gene6 CellTypeSpecific 1.128838e-07     0.5        0.5
 
 ``` r
-res_primo <- primo_pipeline_wrap(
+res_primo <- infer_celltype_patterns(
   merged          = merged_example,
   pvals_names     = c("p_1_ct2", "p_2_ct2"),
   p_join_name     = "p_join_ct2",
@@ -287,38 +306,10 @@ res_primo <- primo_pipeline_wrap(
   fdr_cutoff      = 0.1
 )
 ```
-
-    ## 
-    ## Iteration: 1
-    ## Iteration: 2
-    ## Iteration: 3
-
 ``` r
-res_primo$n_trait
-```
-
-    ## cell1 cell2 
-    ##    22    20
-
-``` r
-res_primo$n_shared_specific
-```
-
-    ## [1] 18
-
-``` r
-res_primo$n_shared_nonspecific
-```
-
-    ## [1] 15
-
-``` r
-res_primo$n_shared_total
-```
-
-    ## [1] 33
-
-``` r
+length(res_primo$genes_sig_specific)
+length(res_primo$genes_sig_nonspecific)
+lengths(res_primo$unique_by_cell)
 res_primo$tab_specific_patterns
 ```
 
@@ -329,11 +320,8 @@ res_primo$tab_specific_patterns
 ### Parameters
 
 - `merged`  
-  Data frame containing:
-
-  - marginal p-values for each cell type  
-  - joint p-value  
-  - cell-type specificity label
+  Data frame containing marginal p-values, a joint p-value, and a
+  cell-type-specificity label.
 
 - `pvals_names`  
   Character vector of marginal p-value column names (length = K).
@@ -352,24 +340,21 @@ res_primo$tab_specific_patterns
 ### Key Outputs
 
 - `out`  
-  Input table augmented with:
+  Input table augmented with BH-adjusted p-values, PRIMO posterior
+  probabilities (`post_*`), and MAP pattern labels (`MAP_pattern_nonnull`).
 
-  - BH-adjusted p-values  
-  - PRIMO posterior probabilities (`post_*`)  
-  - MAP pattern labels (`MAP_pattern_nonnull`)
+- `genes_sig_specific`  
+  Gene IDs for significant cell-type-specific genes.
 
-- `n_trait`  
-  Number of genes uniquely associated with each cell type.
+- `genes_sig_nonspecific`  
+  Gene IDs for significant non-specific genes based on the joint test.
 
-- `n_shared_specific`  
-  Number of significant cell-type-specific genes associated with
-  multiple cell types.
+- `unique_by_cell`  
+  A named list of genes uniquely assigned to each cell type pattern.
 
-- `n_shared_nonspecific`  
-  Number of significant non-specific genes (based on joint test).
-
-- `n_shared_total`  
-  Total number of shared genes.
+- `shared_specific_genes`  
+  Significant cell-type-specific genes assigned to patterns involving two
+  or more cell types.
 
 - `tab_specific_patterns`  
   Table summarizing MAP pattern counts among significant

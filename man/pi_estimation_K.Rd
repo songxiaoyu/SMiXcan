@@ -2,16 +2,16 @@
 % Please edit documentation in R/pi_estimation.R
 \name{pi_estimation_K}
 \alias{pi_estimation_K}
-\title{Estimate cell-type fractions for K cell types using BayesDeBulk}
+\title{Estimate K-cell-type fractions with BayesDeBulk}
 \usage{
 pi_estimation_K(exprB, markers, seed = 1, n.iter = 10000, burn.in = 1000, ...)
 }
 \arguments{
-\item{exprB}{A matrix or data frame of bulk expression values (genes × samples
-or samples × genes, formatted as expected by \code{BayesDeBulk}).}
+\item{exprB}{Matrix or data frame of bulk expression values, formatted as
+expected by \code{BayesDeBulk}.}
 
-\item{markers}{A list of length K, where \code{markers[[c]]} is a character
-vector of marker genes for cell type \code{cell.type[c]}.}
+\item{markers}{Named list of marker genes, where each element contains the
+marker set for one cell type.}
 
 \item{seed}{Random seed.}
 
@@ -24,15 +24,14 @@ vector of marker genes for cell type \code{cell.type[c]}.}
 \value{
 A list with components:
 \describe{
-\item{cell_fraction}{A data frame of estimated cell-type fractions with
-one row per sample and one column per cell type, plus \code{SampleID}
-as row names.}
-\item{cell_expression}{Estimated cell-type–specific expression as returned
-by \code{BayesDeBulk}.}
+\item{cell_fraction}{Data frame of estimated cell-type fractions with one
+row per sample and one column per cell type.}
+\item{cell_expression}{Cell-type-specific expression estimates returned by
+\code{BayesDeBulk}.}
 }
 }
 \description{
 This function runs \code{BayesDeBulk} on bulk expression data and returns
-estimated cell-type fractions (π) for K cell types, along with the
-estimated cell-type–specific expression.
+estimated cell-type fractions together with the fitted cell-type-specific
+expression profiles.
 }

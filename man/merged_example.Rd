@@ -15,6 +15,6 @@ merged_example
 }
 \description{
 A toy results table with marginal p-values per cell type, a joint p-value, and
-a specificity label, used to demonstrate \code{primo_pipeline_wrap()}.
+a specificity label, used to demonstrate \code{infer_celltype_patterns()}.
 }
 \keyword{datasets}

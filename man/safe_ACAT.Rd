@@ -2,17 +2,17 @@
 % Please edit documentation in R/MiXcan_updated.R
 \name{safe_ACAT}
 \alias{safe_ACAT}
-\title{Safe Wrapper for ACAT P-value Combination}
+\title{Safely combine p-values with ACAT}
 \usage{
 safe_ACAT(p_values)
 }
 \arguments{
-\item{p_values}{A numeric vector of p-values to be combined using the ACAT method.}
+\item{p_values}{Numeric vector of p-values to combine.}
 }
 \value{
-A single numeric value: the combined p-value (or \code{NA} if ACAT fails).
+A single combined p-value, or \code{NA} if ACAT fails.
 }
 \description{
-This function computes a combined p-value using the ACAT method while handling possible numerical or input errors.
-If an error occurs during computation, the function returns \code{NA} and prints an informative message.
+This helper wraps \code{ACAT::ACAT()} and returns \code{NA} instead of
+stopping if ACAT fails because of numerical or input issues.
 }

@@ -1,6 +1,6 @@
-#' Estimate cell-type-level prediction weights for a gene (symmetric K-cell MiXcan)
+#' Train symmetric K-cell MiXcan weights for a single gene
 #'
-#' This function generalizes the original MiXcan two–cell-type model to
+#' This function generalizes the original MiXcan two-cell-type model to
 #' K cell types using a symmetric mean + contrast parameterization.
 #' Gene expression is modeled as a linear combination of:
 #'   (i) shared SNP effects across all cell types,
@@ -77,7 +77,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
                                      xNameMatrix = NULL, yName = NULL,
                                      foldid = NULL, alpha = 0.5) {
 
-  ## ---- Basic checks and setup ----
+  ## ---- Input checks and setup ----
   y    <- as.matrix(y)
   x    <- as.matrix(x)
   pi_k <- as.matrix(pi_k)
@@ -90,7 +90,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
     stop("pi_k must have the same number of rows as x (samples).")
   }
 
-  # SNP names / annotation
+  # Use supplied SNP annotation, or create a simple fallback label set.
   if (is.null(xNameMatrix)) {
     if (!is.null(colnames(x))) {
       xNameMatrix <- data.frame(SNP = colnames(x), stringsAsFactors = FALSE)
@@ -105,11 +105,11 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
     foldid <- sample(1:10, n, replace = TRUE)
   }
 
-  # center y and x for numerical stability; pi_k left on original scale
+  # Center y and x for numerical stability; keep pi_k on its original scale.
   y <- scale(y, center = TRUE, scale = FALSE)
   x <- scale(x, center = TRUE, scale = FALSE)
 
-  ## ---- Tissue-level model (PrediXcan-like) ----
+  ## ---- Tissue-level baseline model ----
   if (is.null(cov)) {
     xcov <- x
     pcov <- 0L
@@ -134,14 +134,14 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
   )
   est.tissue <- c(ft0$a0, as.numeric(ft0$beta))  # intercept + coefficients
 
-  ## ---- Symmetric K-cell model: mean + contrasts ----
+  ## ---- Symmetric K-cell model: shared effect + contrasts ----
 
-  # Contrast matrix C: K x (K-1), e.g. Helmert contrasts
+  # Contrast matrix C: K x (K-1), using Helmert contrasts by default.
   C <- stats::contr.helmert(K)   # each row corresponds to 1 cell type
-  # Contrast-coded compositions: N x (K-1)
+  # Contrast-coded cell-type proportions: N x (K-1).
   c_mat <- pi_k %*% C
 
-  # Build interaction blocks: for each contrast m, c_mat[,m] * x (elementwise)
+  # Build SNP-by-contrast interaction blocks.
   Z_list <- vector("list", length = K - 1L)
   for (m in seq_len(K - 1L)) {
     Z_list[[m]] <- c_mat[, m] * x   # N x P
@@ -159,8 +159,8 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
   n_Z  <- p * (K - 1L)
 
   # Penalization:
-  #  - no penalty on c_mat (contrast-only terms for intercept differences)
-  #  - penalty on shared SNP effects, contrast SNP effects, and covariates
+  # no penalty on contrast-only terms for baseline-expression differences;
+  # standard penalty on shared SNP effects, contrast SNP effects, and covariates.
   penalty.factor <- c(
     rep(0, n_c),                 # c_mat (unpenalized)
     rep(1, n_x + n_Z + pcov)     # x, Z_block, cov
@@ -183,11 +183,11 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
 
   est <- c(ft$a0, as.numeric(ft$beta))  # [intercept, all coefficients]
 
-  ## ---- Decode parameters: intercepts and SNP weights per cell type ----
+  ## ---- Decode intercepts and SNP weights for each cell type ----
 
   a0 <- ft$a0   # scalar intercept
 
-  # indices in est (excluding intercept a0):
+  # Indices in est, excluding the global intercept a0:
   # 1..n_c         : alpha_m (effects of c_mat on intercept)
   # (n_c+1)..(n_c+p) : shared SNP effects (bar{b})
   # next n_Z        : contrast SNP effects stacked
@@ -204,11 +204,11 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
   # contrast SNP effects d_m: P x (K-1)
   d_mat <- matrix(est[idx_Z], nrow = p, ncol = K - 1L, byrow = FALSE)
 
-  # reconstruct cell-type-specific intercepts:
+  # Reconstruct cell-type-specific intercepts.
   # a_k = a0 + C[k,] %*% alpha_vec
   a_cell <- as.numeric(a0 + C %*% alpha_vec)  # length K
 
-  # reconstruct cell-type-specific SNP weights:
+  # Reconstruct cell-type-specific SNP weights.
   # b_k = b_bar + d_mat %*% C[k,]
   B_mat <- matrix(NA_real_, nrow = p, ncol = K)
   for (k in seq_len(K)) {
@@ -217,8 +217,8 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
   colnames(B_mat) <- paste0("Cell", seq_len(K))
   rownames(B_mat) <- xNameMatrix[[1]]
 
-  ## ---- Determine model type ----
-  # If all contrast SNP effects are exactly zero => NonSpecific / NoPredictor
+  ## ---- Classify the fitted model ----
+  # If all contrast SNP effects are zero, the model is non-specific or has no predictors.
   if (suppressWarnings(all(d_mat == 0))) {
     if (suppressWarnings(all(b_bar == 0))) {
       Type <- "NoPredictor"
@@ -231,7 +231,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
 
   ## ---- Assemble outputs ----
 
-  # 1) per-cell-type SNP weights as data.frames
+  # 1) Per-cell-type SNP weights as data frames.
   beta.SNP.by.cell <- vector("list", length = K)
   for (k in seq_len(K)) {
     beta.SNP.by.cell[[k]] <- data.frame(
@@ -243,7 +243,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
   names(beta.SNP.by.cell) <- paste0("Cell", seq_len(K))
 
   # 2) beta.all.models:
-  #    combine tissue model + K cell-type models (intercepts + SNP [+ cov])
+  # combine the tissue-level model with the K cell-type models.
   n_rows <- 1 + p + pcov
   beta_cell_mat <- matrix(NA_real_, nrow = n_rows, ncol = K)
   rownames(beta_cell_mat) <- c(
@@ -262,7 +262,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
     }
   }
 
-  # tissue model: est.tissue already contains [intercept, SNPs, covs]
+  # The tissue-level model already contains intercept, SNP, and covariate terms.
   beta_all_models <- cbind(
     Tissue = est.tissue,
     beta_cell_mat
@@ -272,7 +272,7 @@ MiXcan_train_K <- function(y, x, cov = NULL, pi_k,
     type             = Type,
     beta.SNP.by.cell = beta.SNP.by.cell,
     beta.all.models  = beta_all_models,
-    W                = B_mat,          # ← ADD THIS
+    W                = B_mat,
     glmnet.cell      = ft,
     glmnet.tissue    = ft0,
     yName            = yName,
