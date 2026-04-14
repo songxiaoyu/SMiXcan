@@ -1,4 +1,4 @@
-Package: SMiXcanK
+Package: SMiXcan
 Type: Package
 Title: Multi-Cell-Type Extension of MiXcan for Cell-Type-Aware TWAS
 Version: 0.1.0
@@ -11,7 +11,7 @@ Authors@R:
              family = "Song",
              role = "ths"))
 Description: 
-    SMiXcanK provides a multi-cell-type-aware transcriptome-wide association studies (TWAS). 
+    SMiXcan provides a multi-cell-type-aware transcriptome-wide association studies (TWAS). 
     The package integrates bulk expression data with estimated cell-type 
     proportions, enabling the decomposition of genetic effects into shared and 
     cell-type-specific components across K cell types.  
