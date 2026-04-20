@@ -3,7 +3,6 @@ library(lme4)
 library(glmnet)
 library(doRNG)
 library(ACAT)
-library(MiXcan)
 library(tibble)
 library(tidyr)
 library(dplyr)
@@ -106,18 +105,33 @@ for(pheno in pheno_list){
     ref_snp <- total_input$MarkerName_hg38
     X_ref_filtered <- as.matrix(X_ref[, ref_snp, with = FALSE])
 
-    # Extract weight columns
-    W1 <- as.matrix(total_input$weight_cell_1)
-    W2 <- as.matrix(total_input$weight_cell_2)
+    # Build the p x K weight matrix expected by the current SMiXcan package.
+    W_mat <- cbind(
+      weight_cell_1 = as.numeric(total_input$weight_cell_1),
+      weight_cell_2 = as.numeric(total_input$weight_cell_2)
+    )
 
     gwas_results = list()
     gwas_results$Beta = total_input$Zscore
     gwas_results$se_Beta = rep(1,length(total_input$Zscore))
 
-    SMiXcan_result <- SMiXcan_assoc_test(W1, W2, gwas_results, X_ref_filtered, n0=NULL, n1=NULL, family='gaussian')
+    smixcan_result <- SMiXcan_assoc_test_K(
+      W = W_mat,
+      gwas_results = gwas_results,
+      x_g = X_ref_filtered,
+      n0 = NULL,
+      n1 = NULL,
+      family = "gaussian"
+    )
     result[g, 'gene_id'] <- gene
     result[g, 'filtered_snp_num'] <- length(ref_snp)
-    result[g, c('Z_1_join','p_1_join','Z_2_join','p_2_join','p_join')] <- SMiXcan_result
+    result[g, c('Z_1_join','p_1_join','Z_2_join','p_2_join','p_join')] <- c(
+      smixcan_result$Z_join[1],
+      smixcan_result$p_join_vec[1],
+      smixcan_result$Z_join[2],
+      smixcan_result$p_join_vec[2],
+      smixcan_result$p_join
+    )
   }
     result_total[[t]] = result
     t=t+1
