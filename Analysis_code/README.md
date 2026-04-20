@@ -310,6 +310,3 @@ If your local machine uses a different folder name than `3pi`, update the relate
 - Final figures are written into Dropbox `Figure`
 - The file [Document for downloading reference genome.docx](./Document%20for%20downloading%20reference%20genome.docx) contains the download/setup notes for the external reference resources used in this project, including the GTEx-related local data setup and the reference genome resources used by the PLINK steps
 
-## Suggested Future Cleanup
-
-If this code will be shared more broadly, the next quality-of-life improvement would be to move the hard-coded paths into a small config file so users only need to edit one place before running the pipeline.
