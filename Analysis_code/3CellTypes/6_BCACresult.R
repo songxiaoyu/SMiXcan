@@ -1,13 +1,18 @@
-library('SMiXcanK')
+library(data.table)
+library(dplyr)
+library(SMiXcan)
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results", "SMiXcanK_results")
+data_dir <- file.path(paper_dir, "Data")
 #---Input----
-combined_path3 <- '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi3_02.csv'
+combined_path3 <- file.path(results_dir, "bcac2020_result_pi3_02.csv")
 combined3 = read.csv(combined_path3)
 
 #combined_path2 <- '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2.csv'
 #combined2 <- read.csv(combined_path2)
 
 #---Add anotations----
-ensembl_ref = read.csv('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data/ensembl38.txt')
+ensembl_ref = read.csv(file.path(data_dir, "ensembl38.txt"))
 setDT(combined3)
 combined3[, gene_id_clean := sub("\\..*$", "", gene_id)]  # drop any ENSG version
 
@@ -39,7 +44,7 @@ setcolorder(combined3, c("gene_name", "gene_id", "CYTOBAND",
 # Calculate fwer cutoff
 combined3$fwer_p_join <- p.adjust(combined3$p_join, method = "bonferroni")
 length(which(combined3$fwer_p_join < 0.05))  #32
-0.05/nrow(combine2) # fwer cutoff
+0.05 / nrow(combined3) # fwer cutoff
 
 
 #----Run Primo analysis-----
@@ -62,7 +67,7 @@ primo3$genes_by_pattern #001: 9; 010: 4, 011:1, 110:2, 111:9
 
 
 out3 <- primo3$out
-write.csv(out3, '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi3_annotated.csv', row.names = FALSE)
+write.csv(out3, file.path(results_dir, "bcac2020_result_pi3_annotated.csv"), row.names = FALSE)
 
 # Calculate FDR cutoff
 p <- out3$p_join
@@ -93,4 +98,4 @@ out3_rename <- out3 %>%
 length(which(out3_rename$fdr_p_joint < 0.1)) #33
 
 head(out3_rename)
-write.csv(out3_rename, '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/tableS3.csv', row.names = FALSE)
+write.csv(out3_rename, file.path(results_dir, "tableS3.csv"), row.names = FALSE)

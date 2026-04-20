@@ -1,34 +1,105 @@
 
 library(dplyr)
 #setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData')
-setwd("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data")
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+gtex_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data" # not mirrored in Dropbox
+drive_dir <- file.path(paper_dir, "Data", "DRIVE")
+results_dir <- file.path(paper_dir, "Results")
+setwd(gtex_dir)
+
+mixcan_assoc_separate <- function(outcome, cell1, cell2, family = "binomial") {
+  df <- data.frame(
+    outcome = as.numeric(outcome),
+    cell1 = as.numeric(cell1),
+    cell2 = as.numeric(cell2)
+  )
+  df <- stats::na.omit(df)
+
+  if (nrow(df) == 0L) {
+    return(list(
+      cell1_p = NA_real_,
+      cell2_p = NA_real_,
+      p_combined = NA_real_
+    ))
+  }
+
+  preds <- scale(as.matrix(df[, c("cell1", "cell2")]), center = TRUE, scale = TRUE)
+  fit1 <- stats::glm(df$outcome ~ preds[, 1], family = family)
+  fit2 <- stats::glm(df$outcome ~ preds[, 2], family = family)
+  cs1 <- summary(fit1)$coefficients
+  cs2 <- summary(fit2)$coefficients
+
+  get_p <- function(cs) {
+    if (nrow(cs) < 2L) {
+      return(NA_real_)
+    }
+    z <- cs[2, "Estimate"] / cs[2, "Std. Error"]
+    2 * stats::pnorm(abs(z), lower.tail = FALSE)
+  }
+
+  p1 <- get_p(cs1)
+  p2 <- get_p(cs2)
+  list(
+    cell1_p = p1,
+    cell2_p = p2,
+    p_combined = safe_ACAT(c(p1, p2))
+  )
+}
+
+# This is a script-level compatibility helper for the DRIVE comparison only.
+# The current package exposes SMiXcan_assoc_test_K(), which returns the newer
+# generic output format (p_join_vec and p_join). The older DRIVE analysis code
+# below expects separate and joint p-values with two-cell-specific names, so we
+# translate the package output here rather than adding a special-purpose helper
+# to the package itself.
+smixcan_assoc_for_drive <- function(W, gwas_results, x_g, n0, n1, family = "binomial") {
+  cov_x <- stats::var(x_g)
+  sig_l <- sqrt(diag(cov_x))
+  K <- ncol(W)
+
+  z_sep <- rep(NA_real_, K)
+  for (k in seq_len(K)) {
+    wk <- W[, k]
+    sig2_gk <- drop(t(wk) %*% cov_x %*% wk)
+    if (is.finite(sig2_gk) && sig2_gk > 0) {
+      num <- sum((wk * gwas_results$Beta) * sig_l / gwas_results$se_Beta)
+      z_sep[k] <- num / sqrt(sig2_gk)
+    }
+  }
+
+  p_sep <- 2 * stats::pnorm(abs(z_sep), lower.tail = FALSE)
+  joint <- SMiXcan_assoc_test_K(W, gwas_results, x_g, n0 = n0, n1 = n1, family = family)
+
+  list(
+    p_1_sep = p_sep[1],
+    p_2_sep = p_sep[2],
+    p_sep = safe_ACAT(p_sep),
+    p_1_join = joint$p_join_vec[1],
+    p_2_join = joint$p_join_vec[2],
+    p_join = joint$p_join
+  )
+}
 
 # STEP 1 READ DATA-------------
 # read MiXcan weight data
 
-mw_input_new <- read.csv("weights_miXcan_full_2025.csv")
+mw_input_new <- read.csv("weights_miXcan_full_pi2.csv")
 colnames(mw_input_new)[2] ='genename'
-mw_input_new <- mw_input_new %>%
-  mutate(CHR = sub("^(chr[^_]+).*", "\\1", varID))  # chr10, chrX, chrY, chrM
-
-#test<- test[, -c(1,2,3,8)]
-#mw_input_old <- mw_input_old[, -c(1,2,3,8)]
-# simple
 mw_input <- mw_input_new %>%
-  filter(weight_cell_1 != 0 | weight_cell_2 != 0)
-mw_input <- mw_input_new %>%
+  filter(weight_cell_1 != 0 | weight_cell_2 != 0) %>%
+  mutate(CHR = sub("^(chr[^_]+).*", "\\1", varID)) %>%
   mutate(POS = as.integer(sub("^chr[^_]+_([0-9]+).*", "\\1", varID)))
 mw_input <- mw_input[,c("gene_id","genename","CHR","POS","weight_cell_1","weight_cell_2","type")]
 
 
 # read Drive genome data
-coln <- scan(text = readLines('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/Drive/oncoarray_dosages_chr21.txt', 1), what = "", quiet = TRUE)[-1]
-drive_genome = read.table('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/DRIVE/oncoarray_dosages_chr21.txt')
+coln <- scan(text = readLines(file.path(drive_dir, "oncoarray_dosages_chr21.txt"), 1), what = "", quiet = TRUE)[-1]
+drive_genome = read.table(file.path(drive_dir, "oncoarray_dosages_chr21.txt"))
 colnames(drive_genome)[2:ncol(drive_genome)] <- coln
 colnames(drive_genome)[1] <- 'CHR'
 
 # read Drive pheno data
-drive_pheno = read.csv('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/DRIVE/oncoarray-drive.pheno.csv')
+drive_pheno = read.csv(file.path(drive_dir, "oncoarray-drive.pheno.csv"))
 
 #get intersected snp POS
 input_pos = mw_input$POS
@@ -46,7 +117,7 @@ D = drive_pheno[drive_pheno$subject_index %in%  rownames(X_genome), "affection_s
  # Match rows of drive_pheno to X_genome by subject_index
 D <- drive_pheno[match(rownames(X_genome), drive_pheno$subject_index), "affection_status" ]
  # run gwas
-drive_gwas_result = run_gwas(X_genome, D, 'binomial')
+drive_gwas_result = run_gwas(X_genome, D, stats::binomial(), method_binomial = "glm")
 drive_gwas_result = data.frame(drive_gwas_result)
  # combine gwas results with inpit
 drive_input_total = cbind(drive_gwas_result, mw_drive_input)
@@ -86,13 +157,23 @@ for (g in 1:length(drive_gene)) {
   y_predicted$cell_2 <- (as.matrix(x_selected) %*% as.matrix(selected_snp$weight_cell_2))[,1]
   # scale y1, y2
   y_predicted[,2:3] = scale(y_predicted[,2:3])
-  y_predicted$subject_index = coln[9:length(coln)]
+  y_predicted$subject_index = rownames(x_selected)
 
   # run MiXcan association test
   asso_data = merge(y_predicted, drive_pheno, by='subject_index')
 
-  drive_mixcan_sep <- MiXcan_association_sep(new_y = asso_data[,c('cell_1','cell_2')], new_cov = data.frame('cov'=rep(0,nrow(x_selected))), new_outcome = as.matrix(asso_data[, 'affection_status']), family  = "binomial")
-  drive_mixcan_join <- MiXcan_association_join(new_y = asso_data[,c('cell_1','cell_2')], new_cov = data.frame('cov'=rep(0,nrow(x_selected))), new_outcome = as.matrix(asso_data[, 'affection_status']), family  = "binomial")
+  drive_mixcan_sep <- mixcan_assoc_separate(
+    outcome = asso_data$affection_status,
+    cell1 = asso_data$cell_1,
+    cell2 = asso_data$cell_2,
+    family = "binomial"
+  )
+  drive_mixcan_join <- MiXcan_assoc_test(
+    outcome = asso_data$affection_status,
+    cell1 = asso_data$cell_1,
+    cell2 = asso_data$cell_2,
+    family = "binomial"
+  )
 
   
 
@@ -104,19 +185,18 @@ for (g in 1:length(drive_gene)) {
   drive_result[g, 'p_m_join'] = drive_mixcan_join$p_combined
 
   #run S-MiXcan
-  cov_x_g = cov(x_selected)
-
-  Y <- as.matrix(y_predicted[,c('cell_0', 'cell_1','cell_2')])
-  #Y <- as.matrix(y_predicted[,c('cell_1','cell_2')])
-  YtY = t(Y) %*% Y
   gwas_results <- list()
   gwas_results$Beta = selected_snp$Beta
   gwas_results$se_Beta =selected_snp$se_Beta
-  family0 = 'binomial'
-
-
-  #SMiXcan_assoc_test(W1, W2, gwas_results, X_ref_filtered, cov_ref, n0=NULL, n1=NULL, family='gaussian')
-  #S_MiXcan_results <-SMiXcan_assoc_test(W1, W2, gwas_results, cov_x_g, YtY, family0 = 'binomial', Z_0=Z_0)
+  W <- cbind(W1, W2)
+  S_MiXcan_results <- smixcan_assoc_for_drive(
+    W = W,
+    gwas_results = gwas_results,
+    x_g = x_selected,
+    n0 = sum(asso_data$affection_status == 0, na.rm = TRUE),
+    n1 = sum(asso_data$affection_status == 1, na.rm = TRUE),
+    family = "binomial"
+  )
 
   drive_result[g, 'p_s_sep_1'] = S_MiXcan_results$p_1_sep
   drive_result[g, 'p_s_sep_2'] = S_MiXcan_results$p_2_sep
@@ -127,7 +207,11 @@ for (g in 1:length(drive_gene)) {
 }
 
 rownames(drive_result) <- drive_gene
-write.csv(drive_result, 'drive_result_new.csv')
+write.csv(
+  drive_result,
+  file.path(results_dir, "drive_result_full_lam_new.csv"),
+  row.names = TRUE
+)
 View(drive_result)
 plot(drive_result$p_m_sep, drive_result$p_m_join)
 abline(0,1)

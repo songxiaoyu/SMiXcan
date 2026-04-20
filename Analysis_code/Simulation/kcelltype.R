@@ -5,7 +5,7 @@ library(doParallel)
 library(doRNG)
 library(ACAT)
 library(lme4)
-library(MiXcan)
+library(SMiXcan)
 library(tibble)
 library(tidyr)
 library(dplyr)
@@ -112,18 +112,22 @@ for(j in 1:B){
     sim_data <- sim_center_binom(sim_data)
 
     # train prediction model
-    p_results <- train_prediction_model(sim_data$y.train, sim_data$x.train, sim_data$pi.train)
-    W1 <- p_results$W1
-    W2 <- p_results$W2
-    W <- cbind(W1,W2)
-    selected_snp <- p_results$selected_snp
+    pi_train <- cbind(sim_data$pi.train, 1 - sim_data$pi.train)
+    p_results <- MiXcan_train_K(
+      y = sim_data$y.train,
+      x = sim_data$x.train,
+      pi_k = pi_train
+    )
+    W <- p_results$W
+    selected_snp <- which(rowSums(abs(W)) != 0)
+    W <- W[selected_snp, , drop = FALSE]
 
     #run gwas
-    gwas_results <- run_gwas(sim_data$x.test, sim_data$D.test, 'binomial')
-    gwas_results <- list(Beta = gwas_results$Beta[selected_snp], se_Beta = gwas_results$se_Beta[selected_snp])
+    gwas_fit <- run_gwas(sim_data$x.test, as.numeric(sim_data$D.test), stats::binomial(), method_binomial = "glm")
+    gwas_results <- list(Beta = gwas_fit$Beta[selected_snp], se_Beta = gwas_fit$se_Beta[selected_snp])
 
     # read reference data
-    X_ref_filtered = sim_data$x.train[ ,selected_snp]
+    X_ref_filtered = sim_data$x.train[ ,selected_snp, drop = FALSE]
 
     #MiXcan_association_result_join <- MiXcan_association_join(new_y = MiXcan_prediction_result,
     #                                                          new_cov = data.frame('cov'=rep(0,nrow(sim_data$x.test))), new_outcome = sim_data$D.test, family  = 'binomial')
@@ -131,12 +135,18 @@ for(j in 1:B){
 
     # S-MiXcan
     n1 = sum(sim_data$D.test)
-    n0 = nrow(sim_data$D.test) - n1
-    S_MiXcan_results <- SMiXcan_assoc_test(W[,1], W[,2], gwas_results, X_ref_filtered, n0=n0, n1=n1, family='binomial')
-    p_1 = S_MiXcan_results$p_1_join
-    p_2 = S_MiXcan_results$p_2_join
+    n0 = length(sim_data$D.test) - n1
+    yhat_1 <- sim_data$x.test[, selected_snp, drop = FALSE] %*% W[, 1]
+    yhat_2 <- sim_data$x.test[, selected_snp, drop = FALSE] %*% W[, 2]
+    MiXcan_results <- MiXcan_assoc_test(
+      outcome = as.numeric(sim_data$D.test),
+      cell1 = as.numeric(yhat_1),
+      cell2 = as.numeric(yhat_2),
+      family = "binomial"
+    )
+    p_1 = MiXcan_results$cell1_p
+    p_2 = MiXcan_results$cell2_p
 
     S_MiXcan_results_K <- SMiXcan_assoc_test_K(W, gwas_results, X_ref_filtered, n0=n0, n1=n1, family='binomial')
 }
-
 

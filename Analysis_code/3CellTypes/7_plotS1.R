@@ -12,17 +12,21 @@ library(dplyr)
 library(tidyr)
 library(ggforce)
 
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results")
+figure_dir <- file.path(paper_dir, "Figure")
+
 base_font <- 12
 
 # ==============================================================================
 # 1. Load Data
 # ==============================================================================
 out3 <- read.csv(
-  "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi3_annotated.csv",
+  file.path(results_dir, "SMiXcanK_results", "bcac2020_result_pi3_annotated.csv"),
   colClasses = c(MAP_pattern_nonnull = "character")
 )
 drive <- read.csv(
-  "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/drive_result_full_lam_new.csv",
+  file.path(results_dir, "drive_result_full_lam_new.csv"),
   row.names = 1
 )
 
@@ -79,7 +83,7 @@ make_scatter_panel <- function(df, xcol, ycol, subtitle = NULL, base_font = 12) 
 plot_f1_all <- make_scatter_panel(drive, "p_m_join",   "p_s_join",   subtitle = "Tissue-level",         base_font = base_font)
 plot_f1_ct1 <- make_scatter_panel(drive, "p_m_join_1", "p_s_join_1", subtitle = "Adipo/Endo", base_font = base_font)
 plot_f1_ct2 <- make_scatter_panel(drive, "p_m_join_2", "p_s_join_2", subtitle = "Fibroblast", base_font = base_font)
-plot_f1_ct3 <- make_scatter_panel(drive, "p_m_join_2", "p_s_join_2", subtitle = "Epithelial", base_font = base_font)
+plot_f1_ct3 <- make_scatter_panel(drive, "p_m_join_3", "p_s_join_3", subtitle = "Epithelial", base_font = base_font)
 
 
 # Align axes across 4 panels
@@ -100,7 +104,7 @@ figure1 <- cowplot::plot_grid(
 print(figure1)
 
 ggsave(
-  "/Users/zhusinan/Downloads/FigureS1_111.pdf",
+  file.path(figure_dir, "FigureS1_111.pdf"),
   figure1, width = 8, height = 8
 )
 
@@ -235,6 +239,5 @@ figure2 <- cowplot::plot_grid(
 
 print(figure2)
 
-ggsave("/Users/zhusinan/Downloads/FigureS2_111.pdf",
+ggsave(file.path(figure_dir, "FigureS2_111.pdf"),
        figure2, width = 10, height = 5)
-

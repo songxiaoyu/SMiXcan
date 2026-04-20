@@ -11,10 +11,12 @@ library(tibble)
 library(tidyr)
 library(dplyr)
 library(MASS)
-library(SMiXcanK)
+
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+analysis_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi" # not mirrored in Dropbox because it contains large intermediate files
 
 # STEP1: load data--------
-setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi')
+setwd(analysis_dir)
 
 n1 <- 133384
 
@@ -31,14 +33,15 @@ for(chr in 1:22){
 
   # Load LD matrix, ref genome, SNP info
   LD_input_dir <- 'bcac2020_filtered_id/'
-  LD_snp_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_pi2.bim", chr))
-  X_ref_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_012_pi2.raw", chr))
+  LD_snp_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_pi2_eur.bim", chr))
+  X_ref_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_012_pi2_eur.raw", chr))
 
   ld_snp <- fread(LD_snp_path, header = FALSE)
   ref_snp_id <- ld_snp$V2
 
   # Read genotype matrix and set proper colnames
-  X_ref <- as.matrix(fread(X_ref_path)[, 7:ncol(fread(X_ref_path))])
+  X_ref_dt <- fread(X_ref_path)
+  X_ref <- as.matrix(X_ref_dt[, 7:ncol(X_ref_dt)])
   colnames(X_ref) <- sub("_.*", "", colnames(X_ref))
 
   # Filter intersecting SNPs
@@ -54,7 +57,7 @@ for(chr in 1:22){
     gene_df <- split_df[[gene]]
     W1 <- gene_df$weight_cell_1
     W2 <- gene_df$weight_cell_2
-    W <- cbind(W1, W2, W3)
+    W <- cbind(W1, W2)
     filtered_list[[gene]] <- list(W = W, selected_snp = gene_df)
   }
 

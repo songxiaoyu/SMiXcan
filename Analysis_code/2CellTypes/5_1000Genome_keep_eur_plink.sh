@@ -8,7 +8,7 @@ conda activate plink2
 CHR_LIST=$(echo {1..22})
 # 1000Genome data in DATA_DIR, downloaded from ....url and options
 DATA_DIR="/Users/zhusinan/Downloads/adriana/plink_snplist_by_gene"
-GWAS_ID_DIR="/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi_alpha08/bcac2020_filtered_id"
+GWAS_ID_DIR="/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi/bcac2020_filtered_id"
 
 # Path to your EUR ID list (Make sure you created this file in Step 1)
 # The file should contain one Sample ID per line
@@ -32,18 +32,18 @@ for chr in $CHR_LIST; do
   # Added --keep "${EUR_samples}"
   plink2 \
     --pfile "${DATA_DIR}/chr${chr}_hg38" \
-    --extract "${GWAS_ID_DIR}/bcac2020_filtered_chr${chr}_gwas_id_pi3_alpha08.txt" \
+    --extract "${GWAS_ID_DIR}/bcac2020_filtered_chr${chr}_gwas_id_pi2.txt" \
     --keep "${EUR_samples}" \
     --make-bed \
-    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pi3_alpha08_eur"
+    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pi2_eur"
 
   # Convert to 012 format (additive coding)
   # Note: The input file here is already filtered for EUR, so no extra flag needed
   conda activate plink
   plink \
-    --bfile "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pi3_alpha08_eur" \
+    --bfile "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pi2_eur" \
     --recodeA \
-    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_012_pi3_alpha08_eur"
+    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_012_pi2_eur"
 
   echo "Finished chr${chr}."
 done

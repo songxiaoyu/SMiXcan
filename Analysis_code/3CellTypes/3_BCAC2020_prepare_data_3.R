@@ -6,11 +6,13 @@ library(stringr)
 library(data.table)
 
 # Set directories for gwas data and output
-gwas_dir <- file.path("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/Breast_Cancer_Risk_2020")
-output_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi_alpha08"
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results")
+gwas_dir <- file.path(paper_dir, "Data", "BCAC")
+output_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi"
 
 # Read MiXcan model weights
-mw_input <- fread("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data/weights_miXcan_full_pi3_alpha08.csv")
+mw_input <- fread(file.path(results_dir, "weights_miXcan_full_pi3.csv"))
 
 # Parse varID to 1000Genome format and create 'CHR' column
 mw_input <- mw_input %>%
@@ -53,9 +55,10 @@ for (chr in 1:22) {
 
   # Save varid list
   write.table(data.frame(mw_gwas_input$varID),
-              file = file.path(output_dir, sprintf("bcac2020_filtered_id/bcac2020_filtered_chr%d_gwas_id_pi3_alpha08.txt", chr)),
+              file = file.path(output_dir, sprintf("bcac2020_filtered_id/bcac2020_filtered_chr%d_gwas_id_pi3.txt", chr)),
               col.names = FALSE, row.names = FALSE, quote = FALSE)
 
-  # Save full merged object as .rds
-  saveRDS(mw_gwas_input, file = file.path(output_dir, sprintf("baca2020_input/chr%d_mw_gwas_input_bcac2020_pi3_alpha08.rds", chr)))
+  # Keep the existing 3pi workspace folder/file naming so this script matches the
+  # archived run artifacts that downstream code already uses.
+  saveRDS(mw_gwas_input, file = file.path(output_dir, sprintf("baca2020_input/chr%d_mw_gwas_input_bcac2020_oct.rds", chr)))
 }

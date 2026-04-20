@@ -11,10 +11,12 @@ library(tibble)
 library(tidyr)
 library(dplyr)
 library(MASS)
-library(SMiXcanK)
+
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+analysis_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi"
 
 # STEP1: load data--------
-setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi')
+setwd(analysis_dir)
 
 n1 <- 133384
 n0 <- 113789 + 18908
@@ -26,6 +28,7 @@ for(chr in 1:22){
   print('CHR')
   print(chr)
   # Load pre-merged data
+  # Keep the historical workspace folder/file naming used by the archived 3pi run.
   mw_gwas_input_path <- file.path(sprintf("baca2020_input/chr%d_mw_gwas_input_bcac2020_oct.rds", chr))
   mw_gwas_input <- readRDS(mw_gwas_input_path)
 
@@ -38,7 +41,8 @@ for(chr in 1:22){
   ref_snp_id <- ld_snp$V2
 
   # Read genotype matrix and set proper colnames
-  X_ref <- as.matrix(fread(X_ref_path)[, 7:ncol(fread(X_ref_path))])
+  X_ref_dt <- fread(X_ref_path)
+  X_ref <- as.matrix(X_ref_dt[, 7:ncol(X_ref_dt)])
   colnames(X_ref) <- sub("_.*", "", colnames(X_ref))
 
   # Filter intersecting SNPs
@@ -94,5 +98,3 @@ combined3 <- do.call(rbind, lapply(1:22, function(chr) {
 
 combined_path <- file.path('bcac2020_result','bcac2020_result_pi3_02.csv')
 write.csv(combined3, combined_path, row.names = FALSE)
-
-

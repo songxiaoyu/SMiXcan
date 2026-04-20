@@ -1,7 +1,10 @@
 #library(devtools)
 #library(BayesDeBulk)
 library(dplyr)
-library(SMiXcanK)
+library(SMiXcan)
+
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results")
 
 # Three cell types only  ----
 # Create Marker Matrix (from Francesca) ----
@@ -21,5 +24,13 @@ res_K <- pi_estimation_K(exprB,
 View(res_K$cell.fraction)
 View(res_K$cell.expression)
 dat=res_K$cell.fraction%>%  as.data.frame() %>% rownames_to_column("SampleID")
-write.table(dat, file="BayesDeBulk_pi_3ct.tsv",sep="\t", col.names=T, row.names=F,append=FALSE,quote=FALSE)
-
+# Previous output name used in older runs: BayesDeBulk_pi_3ct.tsv
+write.table(
+  dat,
+  file = file.path(results_dir, "BayesDeBulk_pi_3ct_GTEx.tsv"),
+  sep = "\t",
+  col.names = TRUE,
+  row.names = FALSE,
+  append = FALSE,
+  quote = FALSE
+)

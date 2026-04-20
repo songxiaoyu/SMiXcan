@@ -10,7 +10,8 @@ library(stringr)
 library(data.table)
 
 # Set directories for gwas data and output
-gwas_dir <- file.path("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/BCAC/Breast_Cancer_Risk_2020")
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+gwas_dir <- file.path(paper_dir, "Data", "BCAC")
 output_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi"
 
 # Read MiXcan model weights

@@ -15,18 +15,22 @@ library(tidyr)
 library(Primo)
 library(ggforce)
 
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results")
+figure_dir <- file.path(paper_dir, "Figure")
+
 base_font <- 12
 
 # ==============================================================================
 # 1. Load Data
 # ==============================================================================
 out2 <- read.csv(
-  "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2_annotated.csv",
+  file.path(results_dir, "SMiXcanK_results", "bcac2020_result_pi2_annotated.csv"),
   colClasses = c(MAP_pattern_nonnull = "character")
 )
 
 drive <- read.csv(
-  "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/drive_result_full_lam_new.csv",
+  file.path(results_dir, "drive_result_full_lam_new.csv"),
   row.names = 1
 )
 
@@ -116,16 +120,16 @@ figure1 <- cowplot::plot_grid(
 
 print(figure1)
 
-ggsave("/Users/zhusinan/Downloads/Figure1_ABC_scatter.pdf",
+ggsave(file.path(figure_dir, "Figure1_ABC_scatter.pdf"),
        figure1, width = 15, height = 5)
 
 # ==============================================================================
 # 3. Figure 2 Panel B: QQ Plot (requires combined2 in your environment)
 # ==============================================================================
 
-# NOTE: combined2 must already exist with columns: p_join, gene_name
-pvals_b    <- combined2$p_join
-genename_b <- combined2$gene_name
+# Use the annotated Primo output directly for the QQ plot.
+pvals_b    <- out2$p_join
+genename_b <- out2$gene_name
 mask_b <- is.finite(pvals_b) & !is.na(pvals_b) & !is.na(genename_b) & pvals_b > 0 & pvals_b < 1
 p_clean_b <- pvals_b[mask_b]
 g_clean_b <- as.character(genename_b[mask_b])
@@ -249,7 +253,7 @@ figure2 <- cowplot::plot_grid(
 
 print(figure2)
 
-ggsave("/Users/zhusinan/Downloads/Figure2_BC.pdf",
+ggsave(file.path(figure_dir, "Figure2_BC.pdf"),
        figure2, width = 10, height = 5)
 
 
@@ -282,7 +286,7 @@ final_figure <- cowplot::plot_grid(
 print(final_figure)
 
 ggsave(
-  "/Users/zhusinan/Downloads/Final_Figure_ABC.pdf",
+  file.path(figure_dir, "Final_Figure_ABC.pdf"),
   final_figure,
   width = 15,
   height = 10

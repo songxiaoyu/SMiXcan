@@ -13,10 +13,11 @@ library(janitor)
 library(tibble)
 library(doParallel)
 library(dplyr)
-library(SMiXcanK)
 
 # Local working directory used for the original analysis
 setwd("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data")
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results")
 
 # ------------------------------------------------------------------------------
 # 1. Sample selection and expression input
@@ -44,8 +45,11 @@ dim(exprB) # check the number
 
 # Load estimated cell-type proportions and collapse them into
 # epithelial vs. non-epithelial components for the 2-cell model.
-pis<- read.csv("/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Data/BayesDeBulk_3CT_GTEx/BayesDeBulk_pi_3ct_GTEx.tsv",
-               sep = "\t", header = TRUE)
+pis <- read.csv(
+  file.path(results_dir, "BayesDeBulk_pi_3ct_GTEx.tsv"),
+  sep = "\t",
+  header = TRUE
+)
 
 pis_new <- pis[, c('SampleID','Epi')]
 pis_new$Other <- 1- pis_new$Epi
@@ -131,8 +135,13 @@ for (j in 1:G){
     x.complete=xData[cp.idx,xvar0]
   }
   if (px==1) {
-    xvar0=1*(mean(xData[cp.idx,])>0.05)
-    x.complete=matrix(xData[,xvar0])
+    if (mean(xData[cp.idx, 1]) > 0.05) {
+      xvar0 <- 1L
+      x.complete <- matrix(xData[cp.idx, 1], ncol = 1)
+    } else {
+      xvar0 <- integer(0)
+      x.complete <- matrix(numeric(0), nrow = sum(cp.idx), ncol = 0)
+    }
 
   }
   if (ncol(x.complete) == 0 ||is.null(nrow(x.complete))) {next}
@@ -155,7 +164,7 @@ for (j in 1:G){
   #ft.sym=SMiXcan::train_prediction_model(y.train=y.complete, x.train=x.complete, pi.train=pi.complete,cov=z.complete, xNameMatrix=xName.all[xvar0,], foldid=foldid)
   ft.sym <- tryCatch({
     # Main model fit.
-    ft.sym  <- MiXcan_train_K_symmetric(
+    ft.sym  <- MiXcan_train_K(
       y = y.complete,
       x = x.complete,
       pi_k = pi.complete,
@@ -172,7 +181,7 @@ for (j in 1:G){
     if (nrow(w)) res_weights_all[[j]] <- w
   }, error = function(e) {
     # Skip failed genes without stopping the full training loop.
-    cat("MiXcan_train_K_symmetric failed for this gene. Error:", conditionMessage(e), "\n")
+    cat("MiXcan_train_K failed for this gene. Error:", conditionMessage(e), "\n")
 
     # Return a placeholder object so the outer loop can continue.
     return(list(

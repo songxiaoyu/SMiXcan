@@ -1,10 +1,15 @@
-library('SMiXcanK')
+library(data.table)
+library(dplyr)
+library(SMiXcan)
+paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+results_dir <- file.path(paper_dir, "Results", "SMiXcanK_results")
+data_dir <- file.path(paper_dir, "Data")
 #---Input----
-combined_path2 <- '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2.csv'
+combined_path2 <- file.path(results_dir, "bcac2020_result_pi2.csv")
 combined2 <- read.csv(combined_path2)
 
 #---Add anotations for supplementary table (can be skipped if only need Primo)----
-ensembl_ref = read.csv('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data/ensembl38.txt')
+ensembl_ref = read.csv(file.path(data_dir, "ensembl38.txt"))
 setDT(combined2)
 combined2[, gene_id_clean := sub("\\..*$", "", gene_id)]  # drop any ENSG version
 
@@ -32,16 +37,6 @@ setcolorder(combined2, c("gene_name", "gene_id", "CYTOBAND",
 
 
 
-# Calculate fwer cutoff
-combined2$fwer_p_join <- p.adjust(combined2$p_join, method = "bonferroni")
-length(which(combined2$fwer_p_join < 0.05))  #32
-0.05/nrow(combine2) # fwer cutoff
-# Calculate FDR cutoff
-p <- out$p_join
-fdr_cutoff <- max(p[primo2$out$fdr_p_join  < 0.1], na.rm=TRUE)
-fdr_cutoff #0.000825722
-
-
 #----Run Primo analysis-----
 combined2 <- as.data.frame(combined2)
 primo2 <- infer_celltype_patterns(
@@ -62,7 +57,18 @@ primo2$genes_by_pattern #01: 7; 10: 1
 
 
 out2 <- primo2$out
-write.csv(out2, '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2_annotated.csv', row.names = FALSE)
+
+# Calculate fwer cutoff
+combined2$fwer_p_join <- p.adjust(combined2$p_join, method = "bonferroni")
+length(which(combined2$fwer_p_join < 0.05))  #32
+0.05 / nrow(combined2) # fwer cutoff
+
+# Calculate FDR cutoff
+p <- out2$p_join
+fdr_cutoff <- max(p[out2$fdr_p_join < 0.1], na.rm = TRUE)
+fdr_cutoff #0.000825722
+
+write.csv(out2, file.path(results_dir, "bcac2020_result_pi2_annotated.csv"), row.names = FALSE)
 
 
 # Write table S1
@@ -89,6 +95,4 @@ out2_rename <- out2 %>%
 
 
 head(out2_rename)
-write.csv(out2_rename, '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/tableS2.csv', row.names = FALSE)
-
-
+write.csv(out2_rename, file.path(results_dir, "tableS2.csv"), row.names = FALSE)
