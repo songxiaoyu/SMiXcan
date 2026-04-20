@@ -8,7 +8,7 @@
 A data.frame.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 merged_example

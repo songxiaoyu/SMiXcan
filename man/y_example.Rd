@@ -8,7 +8,7 @@
 A numeric vector.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 y_example

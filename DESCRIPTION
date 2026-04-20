@@ -2,14 +2,17 @@ Package: SMiXcan
 Type: Package
 Title: Multi-Cell-Type Extension of MiXcan for Cell-Type-Aware TWAS
 Version: 0.1.0
-Authors@R: 
-    c(person(given = "Sinan",
+Authors@R: c(
+      person(given = "Sinan",
              family = "Zhu",
              role = c("aut", "cre"),
-             email = "your_email@example.com"),
+             email = "sinan.zhu@u.duke.nus.edu"),
       person(given = "Xiaoyu",
              family = "Song",
              role = "ths"))
+Author: Sinan Zhu [aut, cre],
+    Xiaoyu Song [ths]
+Maintainer: Sinan Zhu <sinan.zhu@u.duke.nus.edu>
 Description: 
     SMiXcan provides a multi-cell-type-aware transcriptome-wide association studies (TWAS). 
     The package integrates bulk expression data with estimated cell-type 
@@ -19,6 +22,8 @@ Description:
     The methodology extends MiXcan to allow simultaneous modeling of multiple 
     biological cell types, improving interpretability and statistical power in 
     TWAS of complex tissues.
+URL: https://github.com/songxiaoyu/SMiXcan
+BugReports: https://github.com/songxiaoyu/SMiXcan/issues
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
@@ -28,9 +33,7 @@ Imports:
     glmnet,
     tibble,
     dplyr,
-    magrittr,
     ACAT,
-    foreach,
     Primo
 Suggests:
     devtools,

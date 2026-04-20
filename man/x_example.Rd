@@ -8,7 +8,7 @@
 A numeric matrix.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 x_example

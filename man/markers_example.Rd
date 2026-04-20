@@ -8,7 +8,7 @@
 A named list of character vectors.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 markers_example

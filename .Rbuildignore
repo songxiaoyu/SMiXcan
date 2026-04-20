@@ -1,3 +1,6 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^SMiXcanK\.Rproj$
+^\.DS_Store$
+^.*\.Rcheck$
+^\.\.Rcheck$
+^.*\.tar\.gz$

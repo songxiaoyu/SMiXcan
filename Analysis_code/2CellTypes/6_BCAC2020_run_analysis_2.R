@@ -14,11 +14,11 @@ library(MASS)
 library(SMiXcanK)
 
 # STEP1: load data--------
-setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi')
+setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi')
 
 n1 <- 133384
-n0 <- 113789 + 18908
 
+n0 <- 113789 + 18908
 
 
 # Set chromosome
@@ -26,13 +26,13 @@ for(chr in 1:22){
   print('CHR')
   print(chr)
   # Load pre-merged data
-  mw_gwas_input_path <- file.path(sprintf("baca2020_input/chr%d_mw_gwas_input_bcac2020_oct.rds", chr))
+  mw_gwas_input_path <- file.path(sprintf("bcac2020_input/chr%d_mw_gwas_input_bcac2020_pi2.rds", chr))
   mw_gwas_input <- readRDS(mw_gwas_input_path)
 
   # Load LD matrix, ref genome, SNP info
   LD_input_dir <- 'bcac2020_filtered_id/'
-  LD_snp_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_pi3.bim", chr))
-  X_ref_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_012_pi3.raw", chr))
+  LD_snp_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_pi2.bim", chr))
+  X_ref_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_012_pi2.raw", chr))
 
   ld_snp <- fread(LD_snp_path, header = FALSE)
   ref_snp_id <- ld_snp$V2
@@ -54,7 +54,6 @@ for(chr in 1:22){
     gene_df <- split_df[[gene]]
     W1 <- gene_df$weight_cell_1
     W2 <- gene_df$weight_cell_2
-    W3 <- gene_df$weight_cell_3
     W <- cbind(W1, W2, W3)
     filtered_list[[gene]] <- list(W = W, selected_snp = gene_df)
   }
@@ -62,8 +61,8 @@ for(chr in 1:22){
 
   # STEP2 Run S-MiXcan----
   G <- length(filtered_list)
-  real_result = data.frame(matrix(ncol = 12, nrow = G))
-  colnames(real_result) <- c('gene_name','gene_id','chr','type','input_snp_num','Z_1','p_1','Z_2','p_2','Z_3','p_3','p_join')
+  real_result = data.frame(matrix(ncol = 9, nrow = G))
+  colnames(real_result) <- c('gene_id','chr','type','input_snp_num','Z_1','p_1','Z_2','p_2','p_join')
   real_result$chr <- chr
 
   for (g in 1:G) {
@@ -78,21 +77,19 @@ for(chr in 1:22){
     )
     X_ref_filtered <- X_ref[, selected_snp_id, drop = FALSE]
     S_MiXcan_results <- SMiXcan_assoc_test_K(W, gwas_results, X_ref_filtered, n0=n0, n1=n1, family='binomial')
-    real_result[g, c('gene_name','gene_id','chr', 'type', 'input_snp_num')] =c(filtered_list[[gene]]$selected_snp[1,c('gene','varID','CHR','type')], nrow(W))
-    real_result[g, c('Z_1','p_1','Z_2','p_2','Z_3','p_3','p_join')] <- c(c(rbind(S_MiXcan_results$Z_join, S_MiXcan_results$p_join_vec)), S_MiXcan_results$p_join)
+    real_result[g, c('gene_id','chr', 'type', 'input_snp_num')] =c(filtered_list[[gene]]$selected_snp[1,c('gene','CHR','type')], nrow(W))
+    real_result[g, c('Z_1','p_1','Z_2','p_2','p_join')] <- c(c(rbind(S_MiXcan_results$Z_join, S_MiXcan_results$p_join_vec)), S_MiXcan_results$p_join)
   }
 
-  result_path <- file.path('bcac2020_result',sprintf("bcac2020_chr%d_result_pi3_02.csv", chr))
+  result_path <- file.path('bcac2020_result',sprintf("bcac2020_chr%d_result_pi2.csv", chr))
   write.csv(real_result, result_path, row.names = FALSE)
 }
 
-combined3 <- do.call(rbind, lapply(1:22, function(chr) {
+# Combine 22 chr and save the result
+combined <- do.call(rbind, lapply(1:22, function(chr) {
   result_path <- file.path("bcac2020_result",
-                           sprintf("bcac2020_chr%d_result_pi3_02.csv", chr))
+                           sprintf("bcac2020_chr%d_result_pi2.csv", chr))
   read.csv(result_path)
 }))
-
-combined_path <- file.path('bcac2020_result','bcac2020_result_pi3_02.csv')
-write.csv(combined3, combined_path, row.names = FALSE)
-
-
+combined_path <- file.path('bcac2020_result','bcac2020_result_pi2.csv')
+write.csv(combined, combined_path, row.names = FALSE)

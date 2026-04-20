@@ -1,4 +1,8 @@
-# --- Stage 1: prepare_mw_gwas_input.R ---
+#Input: gwas summary statistics and weights table
+#Output:
+#selected snp list for quick LD calculation: bcac2020_filtered_chr%d_gwas_id_pi2.txt
+#selected snp table with gwas and weights info: chr%d_mw_gwas_input_bcac2020_pi2.rds for d=1,2...,22
+
 
 library(dplyr)
 library(tidyr)
@@ -24,12 +28,11 @@ mw_input <- mw_input %>%
 setkey(mw_input, CHR, varID)
 
 
-# Process each chromosome
+# Keep gwas snps that have non-zero weights separately from each chr, and create a table with both gwas and weight info.
 for (chr in 1:22) {
   cat("Processing chromosome", chr, "\n")
 
   gwas_file <- file.path(gwas_dir, sprintf("chr%d_icogs_hg38.csv", chr))
-  #gwas_file <- file.path(gwas_dir, sprintf("chrX_icogs_hg38.csv", chr))
   if (!file.exists(gwas_file)) {
     cat("  --> File not found, skipping\n")
     next
@@ -51,7 +54,7 @@ for (chr in 1:22) {
   mw_gwas_input[flip == TRUE, c("Baseline.Gwas","Effect.Gwas") := list(Effect.Gwas, Baseline.Gwas)]
 
 
-  # Save varid list
+  # Save only snp id list for quick LD calculation later.
   write.table(data.frame(mw_gwas_input$varID),
               file = file.path(output_dir, sprintf("bcac2020_filtered_id/bcac2020_filtered_chr%d_gwas_id_pi2.txt", chr)),
               col.names = FALSE, row.names = FALSE, quote = FALSE)

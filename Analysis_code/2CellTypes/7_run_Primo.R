@@ -3,7 +3,7 @@ library('SMiXcanK')
 combined_path2 <- '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2.csv'
 combined2 <- read.csv(combined_path2)
 
-#---Add anotations----
+#---Add anotations for supplementary table (can be skipped if only need Primo)----
 ensembl_ref = read.csv('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data/ensembl38.txt')
 setDT(combined2)
 combined2[, gene_id_clean := sub("\\..*$", "", gene_id)]  # drop any ENSG version
@@ -31,12 +31,15 @@ setcolorder(combined2, c("gene_name", "gene_id", "CYTOBAND",
 
 
 
-# combined2 <- read.csv('/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2_annotated.csv')
 
 # Calculate fwer cutoff
 combined2$fwer_p_join <- p.adjust(combined2$p_join, method = "bonferroni")
 length(which(combined2$fwer_p_join < 0.05))  #32
 0.05/nrow(combine2) # fwer cutoff
+# Calculate FDR cutoff
+p <- out$p_join
+fdr_cutoff <- max(p[primo2$out$fdr_p_join  < 0.1], na.rm=TRUE)
+fdr_cutoff #0.000825722
 
 
 #----Run Primo analysis-----
@@ -55,10 +58,7 @@ primo2$shared_specific_genes # 63
 primo2$genes_sig_nonspecific #5
 primo2$genes_by_pattern #01: 7; 10: 1
 
-# Calculate FDR cutoff
-p <- out$p_join
-fdr_cutoff <- max(p[primo2$out$fdr_p_join  < 0.1], na.rm=TRUE)
-fdr_cutoff #0.000825722
+
 
 
 out2 <- primo2$out
@@ -92,10 +92,3 @@ head(out2_rename)
 write.csv(out2_rename, '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/tableS2.csv', row.names = FALSE)
 
 
-#res <- primo2
-#spec_sig <- out[res$sig_spec_idx, ]
-#nonspec_sig <- out[res$sig_uns_idx, ]
-#spec_sig <- spec_sig[!is.na(spec_sig$MAP_pattern_nonnull), ]
-
-#genes_by_pattern <- split(spec_sig$gene_id_clean, spec_sig$MAP_pattern_nonnull)
-#out[which(out$gene_name %in% primo2$genes_by_pattern[['01']]),]

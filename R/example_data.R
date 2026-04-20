@@ -1,5 +1,5 @@
 # ==============================================================================
-# Example data generation for SMiXcanK
+# Example data generation for SMiXcan
 # This script creates the small strong-signal datasets used in the README and
 # package examples for the 2-cell-type workflow.
 # ==============================================================================

@@ -1,11 +1,11 @@
 
-# SMiXcanK: Cell-type-aware TWAS from bulk transcriptomics using GWAS summary statistics
+# SMiXcan: Cell-type-aware TWAS from bulk transcriptomics using GWAS summary statistics
 
-**SMiXcanK** is a summary-statistics-based, cell-type-aware TWAS
+**SMiXcan** is a summary-statistics-based, cell-type-aware TWAS
 framework for studying how genetically predicted expression relates to
 disease risk across multiple cell types.
 
-This document walks through the basic SMiXcanK workflow using the small
+This document walks through the basic SMiXcan workflow using the small
 example datasets bundled with the package. The goal is to show the
 expected inputs and outputs for each function, not to support biological
 interpretation.
@@ -14,7 +14,7 @@ interpretation.
 
 ## Overview of the workflow
 
-The SMiXcanK pipeline consists of four modular steps:
+The SMiXcan pipeline consists of four modular steps:
 
 1.  Estimate cell-type fractions from bulk expression
 2.  Train cell-type–specific gene expression prediction models
@@ -27,12 +27,12 @@ Each step corresponds to one exported function.
 
 ## Installation
 
-With R, users can install the SMiXcanK package directly from GitHub with
+With R, users can install the SMiXcan package directly from GitHub with
 [devtools](https://github.com/hadley/devtools):
 
 ``` r
 install.packages("devtools")
-devtools::install_github("songxiaoyu/SMiXcanK")
+devtools::install_github("songxiaoyu/SMiXcan")
 ```
 
 ------------------------------------------------------------------------
@@ -55,7 +55,7 @@ users may already have their own estimated cell-type proportions.
 - `n.iter`, `burn.in` MCMC settings passed to the underlying estimator.
 
 ``` r
-library(SMiXcanK)
+library(SMiXcan)
 data(exprB_example, markers_example)
 head(exprB_example)
 ```
@@ -273,7 +273,7 @@ res_assoc
 
 ## Step 4: PRIMO-based cell-type association pattern classification (optional)
 
-After running SMiXcanK genome-wide, we may wish to classify significant
+After running SMiXcan genome-wide, we may wish to classify significant
 genes into cell-type association patterns using a PRIMO-based framework.
 
 This step:

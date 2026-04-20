@@ -251,3 +251,39 @@ print(figure2)
 
 ggsave("/Users/zhusinan/Downloads/Figure2_BC.pdf",
        figure2, width = 10, height = 5)
+
+
+# Assemble Figure - ABC combination ver
+# ==============================================================================
+# 5. Final assembly: merge Figure 1 and Figure 2 into one figure
+#    Top row:    A (contains the 3 scatter subplots)
+#    Bottom row: B (QQ plot) and C (split-Venn)
+# ==============================================================================
+
+final_figure <- cowplot::plot_grid(
+  figure1,
+  cowplot::plot_grid(
+    plot_f2_b, plot_f2_c_tall,
+    ncol = 2,
+    rel_widths = c(1, 1),
+    labels = c("B", "C"),
+    label_size = 16,
+    label_fontface = "bold",
+    label_x = 0, label_y = 1
+  ),
+  ncol = 1,
+  rel_heights = c(1, 1),
+  labels = c("A", ""),
+  label_size = 16,
+  label_fontface = "bold",
+  label_x = 0, label_y = 1
+)
+
+print(final_figure)
+
+ggsave(
+  "/Users/zhusinan/Downloads/Final_Figure_ABC.pdf",
+  final_figure,
+  width = 15,
+  height = 10
+)

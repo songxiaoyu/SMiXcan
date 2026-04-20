@@ -8,7 +8,7 @@
 A numeric matrix with genes in rows and samples in columns.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 exprB_example

@@ -8,7 +8,7 @@
 A list with elements \code{Beta} and \code{se_Beta}.
 }
 \source{
-Included with the SMiXcanK package.
+Included with the SMiXcan package.
 }
 \usage{
 gwas_example

@@ -40,7 +40,7 @@ breast3 = breast2[-which(breast2$gene_name %in% dup), ]
 exprB = breast3[, colnames(breast3) %in% cov[which(cov$SEX == 2), "SUBJID"]] # We only need female data
 exprB <- exprB %>% dplyr::select(intersect(names(exprB), gtex_white)) # only white
 rownames(exprB) = breast3$gene_id
-dim(exprB)
+dim(exprB) # check the number
 
 # Load estimated cell-type proportions and collapse them into
 # epithelial vs. non-epithelial components for the 2-cell model.
@@ -194,6 +194,6 @@ filtered_weights <- weights_final[
   weights_final$weight_cell_1 != 0 | weights_final$weight_cell_2 != 0,
 ]
 write_csv(filtered_weights, "weights_miXcan_full_pi2.csv")
-pi3 <- read_csv('weights_miXcan_full_pi3.csv')
-print(dim(weights_final))
-head(weights_final, 10)
+#pi3 <- read_csv('weights_miXcan_full_pi3.csv')
+#print(dim(weights_final))
+#head(weights_final, 10)

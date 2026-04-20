@@ -3,7 +3,7 @@
 #' A small toy bulk expression matrix (genes x samples) used in the README.
 #'
 #' @format A numeric matrix with genes in rows and samples in columns.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "exprB_example"
 
 #' Example marker gene list
@@ -11,7 +11,7 @@
 #' Marker genes for each cell type used by `pi_estimation_K()`.
 #'
 #' @format A named list of character vectors.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "markers_example"
 
 #' Example genotype matrix
@@ -19,7 +19,7 @@
 #' A small toy genotype matrix (samples x SNPs) used in the README.
 #'
 #' @format A numeric matrix.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "x_example"
 
 #' Example gene expression vector
@@ -27,7 +27,7 @@
 #' A small toy expression vector for one gene (length = samples).
 #'
 #' @format A numeric vector.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "y_example"
 
 #' Example GWAS summary statistics
@@ -36,7 +36,7 @@
 #' in `x_example`.
 #'
 #' @format A list with elements `Beta` and `se_Beta`.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "gwas_example"
 
 #' Example merged table for PRIMO post-processing
@@ -45,7 +45,7 @@
 #' a specificity label, used to demonstrate `infer_celltype_patterns()`.
 #'
 #' @format A data.frame.
-#' @source Included with the SMiXcanK package.
+#' @source Included with the SMiXcan package.
 "merged_example"
 
 #' Example cell-type fraction matrix (2 cell types)

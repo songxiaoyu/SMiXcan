@@ -59,6 +59,7 @@ MiXcan_assoc_test <- function(outcome, cell1, cell2, family = 'binomial',
 
   # Null intercept-only model used to form the baseline z-score.
   fit0 <- glm(df$outcome ~ 1, family = family)
+  coef0 <- summary(fit0)$coefficients
   if (family == "gaussian") {
     Z0 <- coef0["(Intercept)", "t value"]
   } else {
