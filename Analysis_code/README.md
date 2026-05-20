@@ -309,4 +309,3 @@ If your local machine uses a different folder name than `3pi`, update the relate
 - Final cleaned outputs are written into Dropbox `Results`
 - Final figures are written into Dropbox `Figure`
 - The file [Document for downloading reference genome.docx](./Document%20for%20downloading%20reference%20genome.docx) contains the download/setup notes for the external reference resources used in this project, including the GTEx-related local data setup and the reference genome resources used by the PLINK steps
-

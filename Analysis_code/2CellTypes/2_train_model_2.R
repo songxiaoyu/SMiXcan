@@ -14,9 +14,9 @@ library(tibble)
 library(doParallel)
 library(dplyr)
 
-# Local working directory used for the original analysis
-setwd("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data")
 paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+data_dir <- file.path(paper_dir, "Data")
+gtex_dir <- file.path(data_dir, "GTEx")
 results_dir <- file.path(paper_dir, "Results")
 
 # ------------------------------------------------------------------------------
@@ -24,13 +24,13 @@ results_dir <- file.path(paper_dir, "Results")
 # ------------------------------------------------------------------------------
 
 # Load GTEx race metadata and keep White participants only.
-gtex_race <- read_csv("gtex_v8_race.csv")
+gtex_race <- read_csv(file.path(gtex_dir, "gtex_v8_race.csv"))
 gtex_white <- gtex_race %>% filter(RACE == "White") %>% pull(SUBJID)
 
 # Load breast tissue expression and prepare a gene-level expression matrix.
-cov = data.frame(fread("GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt"))
-breast = fread("Breast_Mammary_Tissue.v8.normalized_expression.bed") # Extract the expression data only to save space
-ensembl38 <-read_csv("ensembl38.txt") %>% clean_names()
+cov = data.frame(fread(file.path(gtex_dir, "GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt")))
+breast = fread(file.path(gtex_dir, "Breast_Mammary_Tissue.v8.normalized_expression.bed")) # Extract the expression data only to save space
+ensembl38 <-read_csv(file.path(data_dir, "ensembl38.txt")) %>% clean_names()
 ensembl38 = unique(ensembl38[, c("gene_stable_id", "gene_name")])
 breast$gene_id2 = matrix(unlist(strsplit(breast$gene_id, '[.]')), ncol = 2, byrow = T)[, 1]
 breast2 = merge(ensembl38, breast, by.x = "gene_stable_id", by.y = "gene_id2")
@@ -60,9 +60,9 @@ pis_new$Other <- 1- pis_new$Epi
 
 # Load GTEx covariates and keep the samples used above.
 
-cov1=data.frame(fread("phs000424.v8.pht002742.v8.p2.c1.GTEx_Subject_Phenotypes.GRU.txt"))
+cov1=data.frame(fread(file.path(gtex_dir, "phs000424.v8.pht002742.v8.p2.c1.GTEx_Subject_Phenotypes.GRU.txt")))
 cov0=cov1[,c("SUBJID", "AGE")]
-cov2=fread("Breast_Mammary_Tissue.v8.covariates.txt")
+cov2=fread(file.path(gtex_dir, "Breast_Mammary_Tissue.v8.covariates.txt"))
 cov3=t(cov2[,-1])
 colnames(cov3)=data.frame(cov2)[,1]
 cov3=data.frame(colnames(cov2)[-1], cov3);colnames(cov3)[1]="SUBJID"
@@ -75,11 +75,11 @@ cov <- cov%>%
 
 
 # Load genotype data for the selected samples.
-geno1=fread("shapeit_data_for_predictdb_variants-r2") # 178698    847
+geno1=fread(file.path(gtex_dir, "shapeit_data_for_predictdb_variants-r2")) # 178698    847
 geno=geno1[,c(1:9,match(cov[,1], colnames(geno1))), with=F]
 
 # Load the reference elastic-net model used to define cis-SNP sets.
-filename <- "en_Breast_Mammary_Tissue.db"
+filename <- file.path(gtex_dir, "en_Breast_Mammary_Tissue.db")
 library(DBI)
 sqlite.driver <- dbDriver("SQLite")
 ElasticNet <- dbConnect(sqlite.driver, dbname = filename)
@@ -202,7 +202,4 @@ weights_final <- bind_rows(res_weights_all)
 filtered_weights <- weights_final[
   weights_final$weight_cell_1 != 0 | weights_final$weight_cell_2 != 0,
 ]
-write_csv(filtered_weights, "weights_miXcan_full_pi2.csv")
-#pi3 <- read_csv('weights_miXcan_full_pi3.csv')
-#print(dim(weights_final))
-#head(weights_final, 10)
+write_csv(filtered_weights, file.path(results_dir, "weights_miXcan_full_pi2.csv"))

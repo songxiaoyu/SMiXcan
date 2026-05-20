@@ -8,7 +8,7 @@ conda activate plink2
 CHR_LIST=$(echo {1..22})
 # 1000Genome data in DATA_DIR, downloaded from ....url and options
 DATA_DIR="/Users/zhusinan/Downloads/adriana/plink_snplist_by_gene"
-GWAS_ID_DIR="/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi/bcac2020_filtered_id"
+GWAS_ID_DIR="/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/2pi_workspace/bcac2020_filtered_id"
 
 # Path to your EUR ID list (Make sure you created this file in Step 1)
 # The file should contain one Sample ID per line

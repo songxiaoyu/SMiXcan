@@ -13,8 +13,9 @@ library(janitor)
 library(tibble)
 library(doParallel)
 library(dplyr)
-setwd("/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data")
 paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+data_dir <- file.path(paper_dir, "Data")
+gtex_dir <- file.path(data_dir, "GTEx")
 results_dir <- file.path(paper_dir, "Results")
 
 # ------------------------------------------------------------------------------
@@ -22,12 +23,12 @@ results_dir <- file.path(paper_dir, "Results")
 # ------------------------------------------------------------------------------
 
 # Load GTEx race metadata and keep White participants only.
-gtex_race <- read_csv("gtex_v8_race.csv")
+gtex_race <- read_csv(file.path(gtex_dir, "gtex_v8_race.csv"))
 gtex_white <- gtex_race %>% filter(RACE == "White") %>% pull(SUBJID)
 
 # Load breast tissue expression and keep the original object layout.
-cov = data.frame(fread("GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt"))
-breast = fread("Breast_Mammary_Tissue.v8.normalized_expression.bed") # Extract the expression data only to save space
+cov = data.frame(fread(file.path(gtex_dir, "GTEx_Analysis_v8_Annotations_SubjectPhenotypesDS.txt")))
+breast = fread(file.path(gtex_dir, "Breast_Mammary_Tissue.v8.normalized_expression.bed")) # Extract the expression data only to save space
 
 
 # Legacy gene-name harmonization block retained for reference.
@@ -60,9 +61,9 @@ pis <- read.csv(
 
 # Load GTEx covariates and keep the samples used above.
 
-cov1=data.frame(fread("phs000424.v8.pht002742.v8.p2.c1.GTEx_Subject_Phenotypes.GRU.txt"))
+cov1=data.frame(fread(file.path(gtex_dir, "phs000424.v8.pht002742.v8.p2.c1.GTEx_Subject_Phenotypes.GRU.txt")))
 cov0=cov1[,c("SUBJID", "AGE")]
-cov2=fread("Breast_Mammary_Tissue.v8.covariates.txt")
+cov2=fread(file.path(gtex_dir, "Breast_Mammary_Tissue.v8.covariates.txt"))
 cov3=t(cov2[,-1])
 colnames(cov3)=data.frame(cov2)[,1]
 cov3=data.frame(colnames(cov2)[-1], cov3);colnames(cov3)[1]="SUBJID"
@@ -75,11 +76,11 @@ cov <- cov%>%
 
 
 # Load genotype data for the selected samples.
-geno1=fread("shapeit_data_for_predictdb_variants-r2") # 178698    847
+geno1=fread(file.path(gtex_dir, "shapeit_data_for_predictdb_variants-r2")) # 178698    847
 geno=geno1[,c(1:9,match(cov[,1], colnames(geno1))), with=F]
 
 # Load the reference elastic-net model used to define cis-SNP sets.
-filename <- "en_Breast_Mammary_Tissue.db"
+filename <- file.path(gtex_dir, "en_Breast_Mammary_Tissue.db")
 library(DBI)
 sqlite.driver <- dbDriver("SQLite")
 ElasticNet <- dbConnect(sqlite.driver, dbname = filename)
@@ -209,7 +210,7 @@ filtered_weights <- weights_final[
 ]
 # Keep the current shared-workflow filename aligned with the archived Dropbox result.
 # Previous exploratory runs used names such as weights_miXcan_full_pi3_alpha02.csv.
-write_csv(filtered_weights, "weights_miXcan_full_pi3.csv")
+write_csv(filtered_weights, file.path(results_dir, "weights_miXcan_full_pi3.csv"))
 
 # Quick inspection of the combined weight table.
 print(dim(weights_final))
