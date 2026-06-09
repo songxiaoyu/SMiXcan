@@ -51,10 +51,6 @@ pi_file <- file.path(protein_dir, "BayesDeBulk_pi.tsv")
 covariate_file <- file.path(paper_dir, "New generated files", "covariate_EA_with_age.txt")
 ea_keep_file <- file.path(protein_dir, "GTEx_heart_EA_subject_ids.txt")
 ensembl_file <- file.path(data_dir, "ensembl38.txt")
-pvar_dir <- Sys.getenv(
-  "PWAS_PVAR_DIR",
-  unset = file.path(data_dir, "plink_snplist_by_gene")
-)
 rsid_annotation_file <- Sys.getenv(
   "PWAS_RSID_ANNOT_FILE",
   unset = file.path(
@@ -264,9 +260,7 @@ candidate_pvar_files <- function(chr) {
     file.path(geno_raw_dir, sprintf("GTEx_EA_chr%s_nomiss.pvar", chr)),
     file.path(geno_raw_dir, sprintf("chr%s_hg38.pvar", chr)),
     file.path(parent_raw_dir, "pruned_by_chr", sprintf("GTEx_EA_chr%s_nomiss.pvar", chr)),
-    file.path(parent_raw_dir, "pruned_by_chr", sprintf("chr%s_hg38.pvar", chr)),
-    file.path(pvar_dir, sprintf("GTEx_EA_chr%s_nomiss.pvar", chr)),
-    file.path(pvar_dir, sprintf("chr%s_hg38.pvar", chr))
+    file.path(parent_raw_dir, "pruned_by_chr", sprintf("chr%s_hg38.pvar", chr))
   ))
 }
 
