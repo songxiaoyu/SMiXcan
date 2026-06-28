@@ -1,11 +1,12 @@
 
 library(dplyr)
-#setwd('/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData')
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
-gtex_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/code_RealData/RealData/GTEx_Data" # not mirrored in Dropbox
+
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 drive_dir <- file.path(paper_dir, "Data", "DRIVE")
 results_dir <- file.path(paper_dir, "Results")
-setwd(gtex_dir)
 
 mixcan_assoc_separate <- function(outcome, cell1, cell2, family = "binomial") {
   df <- data.frame(
@@ -83,7 +84,7 @@ smixcan_assoc_for_drive <- function(W, gwas_results, x_g, n0, n1, family = "bino
 # STEP 1 READ DATA-------------
 # read MiXcan weight data
 
-mw_input_new <- read.csv("weights_miXcan_full_pi2.csv")
+mw_input_new <- read.csv(file.path(results_dir, "weights_miXcan_full_pi2.csv"))
 colnames(mw_input_new)[2] ='genename'
 mw_input <- mw_input_new %>%
   filter(weight_cell_1 != 0 | weight_cell_2 != 0) %>%

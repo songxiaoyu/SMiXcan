@@ -12,7 +12,10 @@ library(dplyr)
 library(tidyr)
 library(ggforce)
 
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 results_dir <- file.path(paper_dir, "Results")
 figure_dir <- file.path(paper_dir, "Figure")
 

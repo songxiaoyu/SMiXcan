@@ -6,10 +6,13 @@ library(stringr)
 library(data.table)
 
 # Set directories for gwas data and output
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 results_dir <- file.path(paper_dir, "Results")
 gwas_dir <- file.path(paper_dir, "Data", "BCAC")
-output_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi"
+output_dir <- file.path(results_dir, "3pi_workspace")
 
 # Read MiXcan model weights
 mw_input <- fread(file.path(results_dir, "weights_miXcan_full_pi3.csv"))

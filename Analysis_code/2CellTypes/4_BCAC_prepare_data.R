@@ -10,12 +10,15 @@ library(stringr)
 library(data.table)
 
 # Set directories for gwas data and output
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 gwas_dir <- file.path(paper_dir, "Data", "BCAC")
-output_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/2pi_workspace"
+output_dir <- file.path(paper_dir, "Results", "2pi_workspace")
 
 # Read MiXcan model weights
-mw_input <- fread("/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/weights_miXcan_full_pi2.csv")
+mw_input <- fread(file.path(paper_dir, "Results", "weights_miXcan_full_pi2.csv"))
 
 # Parse varID to 1000Genome format and create 'CHR' column
 mw_input <- mw_input %>%

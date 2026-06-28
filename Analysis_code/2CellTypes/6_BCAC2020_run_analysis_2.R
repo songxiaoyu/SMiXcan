@@ -12,11 +12,17 @@ library(tidyr)
 library(dplyr)
 library(MASS)
 
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
-analysis_dir <- "/Users/zhusinan/Downloads/S-MiXcan_code_folder/2pi" # not mirrored in Dropbox because it contains large intermediate files
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
+analysis_dir <- file.path(paper_dir, "Results", "2pi_workspace")
+bcac_input_dir <- file.path(analysis_dir, "bcac2020_input")
+ld_input_dir <- file.path(analysis_dir, "bcac2020_filtered_id")
+result_dir <- file.path(analysis_dir, "bcac2020_result")
 
 # STEP1: load data--------
-setwd(analysis_dir)
+dir.create(result_dir, recursive = TRUE, showWarnings = FALSE)
 
 n1 <- 133384
 
@@ -28,13 +34,12 @@ for(chr in 1:22){
   print('CHR')
   print(chr)
   # Load pre-merged data
-  mw_gwas_input_path <- file.path(sprintf("bcac2020_input/chr%d_mw_gwas_input_bcac2020_pi2.rds", chr))
+  mw_gwas_input_path <- file.path(bcac_input_dir, sprintf("chr%d_mw_gwas_input_bcac2020_pi2.rds", chr))
   mw_gwas_input <- readRDS(mw_gwas_input_path)
 
   # Load LD matrix, ref genome, SNP info
-  LD_input_dir <- 'bcac2020_filtered_id/'
-  LD_snp_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_pi2_eur.bim", chr))
-  X_ref_path <- file.path(LD_input_dir,sprintf("filtered_chr%d_hg38_012_pi2_eur.raw", chr))
+  LD_snp_path <- file.path(ld_input_dir, sprintf("filtered_chr%d_hg38_pi2.bim", chr))
+  X_ref_path <- file.path(ld_input_dir, sprintf("filtered_chr%d_hg38_012_pi2.raw", chr))
 
   ld_snp <- fread(LD_snp_path, header = FALSE)
   ref_snp_id <- ld_snp$V2
@@ -84,15 +89,14 @@ for(chr in 1:22){
     real_result[g, c('Z_1','p_1','Z_2','p_2','p_join')] <- c(c(rbind(S_MiXcan_results$Z_join, S_MiXcan_results$p_join_vec)), S_MiXcan_results$p_join)
   }
 
-  result_path <- file.path('bcac2020_result',sprintf("bcac2020_chr%d_result_pi2.csv", chr))
+  result_path <- file.path(result_dir, sprintf("bcac2020_chr%d_result_pi2.csv", chr))
   write.csv(real_result, result_path, row.names = FALSE)
 }
 
 # Combine 22 chr and save the result
 combined <- do.call(rbind, lapply(1:22, function(chr) {
-  result_path <- file.path("bcac2020_result",
-                           sprintf("bcac2020_chr%d_result_pi2.csv", chr))
+  result_path <- file.path(result_dir, sprintf("bcac2020_chr%d_result_pi2.csv", chr))
   read.csv(result_path)
 }))
-combined_path <- file.path('bcac2020_result','bcac2020_result_pi2.csv')
+combined_path <- file.path(result_dir, "bcac2020_result_pi2.csv")
 write.csv(combined, combined_path, row.names = FALSE)

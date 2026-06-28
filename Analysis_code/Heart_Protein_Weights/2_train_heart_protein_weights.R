@@ -41,7 +41,7 @@ paper_dir <- Sys.getenv(
 heart_dir <- file.path(paper_dir, "Heart")
 protein_dir <- file.path(heart_dir, "GTEx_Pi_Estimate")
 data_dir <- file.path(paper_dir, "Data")
-results_dir <- file.path(paper_dir, "Results", "pwas", "training_model_weights")
+results_dir <- file.path(paper_dir, "Results", "heart_protein_weights", "training_model_weights")
 
 protein_file <- file.path(
   protein_dir,
@@ -62,18 +62,27 @@ rsid_annotation_file <- Sys.getenv(
 
 # Expected input: GTEx heart WGS dosage files exported by PLINK with --export A.
 # Default location:
+#   Paper_SMiXcan/New generated files/codes/by_chr_nomiss
+# These are unpruned dosage files where only SNPs with any missing genotype have
+# been removed. Create them with:
+#   New generated files/codes/by_chr_nomiss is the no-missing dosage source used
+#   before moderate LD pruning.
+#
+# To reproduce the archived pruned experiment, set PWAS_GENO_RAW_DIR to:
 #   Paper_SMiXcan/New generated files/codes/pruned_by_chr
-# The script only searches pruned_by_chr. PWAS_GENO_RAW_DIR can point either to
-# codes/ or directly to codes/pruned_by_chr/.
-# It expects chromosome-wide pruned files such as
-#   chr1_dosage_nomiss_LDpruned_500kb_1_r2_0.8.raw
 geno_raw_dir <- Sys.getenv(
   "PWAS_GENO_RAW_DIR",
-  unset = file.path(paper_dir, "New generated files", "codes", "pruned_by_chr")
+  unset = file.path(paper_dir, "New generated files", "codes", "by_chr_nomiss")
 )
 chr_filter <- Sys.getenv("PWAS_CHR_FILTER", unset = "")
-output_suffix <- Sys.getenv("PWAS_OUTPUT_SUFFIX", unset = "")
+output_suffix <- Sys.getenv("PWAS_OUTPUT_SUFFIX", unset = "_unpruned_nomiss")
 max_proteins <- as.integer(Sys.getenv("PWAS_MAX_PROTEINS", unset = "0"))
+weight_eps <- as.numeric(Sys.getenv("PWAS_WEIGHT_EPS", unset = "1e-8"))
+mixcan_alpha <- as.numeric(Sys.getenv("PWAS_MIXCAN_ALPHA", unset = "0.5"))
+lambda_choice <- Sys.getenv("PWAS_LAMBDA_CHOICE", unset = "1se")
+if (!lambda_choice %in% c("1se", "min")) {
+  stop("PWAS_LAMBDA_CHOICE must be '1se' or 'min'.", call. = FALSE)
+}
 
 dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -231,21 +240,24 @@ make_clean_names <- function(x) {
   x
 }
 
-# Genotype input is chromosome-wide LD-pruned PLINK raw dosage:
-#   chr<chr>_dosage_nomiss_LDpruned_500kb_1_r2_0.8.raw
+# Genotype input is chromosome-wide PLINK raw dosage:
+#   chr<chr>_dosage_nomiss.raw
 # The script filters each chromosome file to cis SNPs using the protein gene
 # coordinates below.
 candidate_raw_files <- function(target_id, chr) {
   parent_raw_dir <- dirname(geno_raw_dir)
+  primary_matches <- Sys.glob(file.path(geno_raw_dir, sprintf("chr%s_dosage*.raw", chr)))
   search_dirs <- unique(c(
     geno_raw_dir,
     file.path(geno_raw_dir, "pruned_by_chr"),
     file.path(parent_raw_dir, "pruned_by_chr")
   ))
   raw_names <- c(
+    sprintf("chr%s_dosage_nomiss.raw", chr),
+    sprintf("chr%s_dosage.raw", chr),
     sprintf("chr%s_dosage_nomiss_LDpruned_500kb_1_r2_0.8.raw", chr)
   )
-  unique(unlist(lapply(search_dirs, file.path, raw_names), use.names = FALSE))
+  unique(c(primary_matches, unlist(lapply(search_dirs, file.path, raw_names), use.names = FALSE)))
 }
 
 # PLINK --export A may produce columns like:
@@ -497,6 +509,147 @@ combine_weights <- function(fit, snp_annot, target, cell_type_cols) {
   out
 }
 
+# Local variant of SMiXcan::MiXcan_train_K that can use lambda.min instead of
+# the package default lambda.1se. This is useful for parameter diagnostics when
+# lambda.1se makes the trained PWAS weights too sparse.
+MiXcan_train_K_select_lambda <- function(y, x, cov = NULL, pi_k, xNameMatrix = NULL,
+                                         yName = NULL, foldid = NULL, alpha = 0.5,
+                                         lambda_choice = "1se") {
+  y <- as.matrix(y)
+  x <- as.matrix(x)
+  pi_k <- as.matrix(pi_k)
+  n <- nrow(x)
+  p <- ncol(x)
+  K <- ncol(pi_k)
+  if (nrow(pi_k) != n) {
+    stop("pi_k must have the same number of rows as x (samples).")
+  }
+  if (is.null(xNameMatrix)) {
+    if (!is.null(colnames(x))) {
+      xNameMatrix <- data.frame(SNP = colnames(x), stringsAsFactors = FALSE)
+    } else {
+      xNameMatrix <- data.frame(SNP = paste0("SNP", seq_len(p)), stringsAsFactors = FALSE)
+    }
+  }
+  if (is.null(foldid)) {
+    set.seed(1L)
+    foldid <- sample(1:10, n, replace = TRUE)
+  }
+
+  pick_lambda <- function(cv_fit) {
+    if (lambda_choice == "min") cv_fit$lambda.min else cv_fit$lambda.1se
+  }
+  cv_mse_at_lambda <- function(cv_fit, lambda_value) {
+    idx <- which.min(abs(log(cv_fit$lambda) - log(lambda_value)))
+    cv_fit$cvm[idx]
+  }
+  cv_r2_at_lambda <- function(cv_fit, lambda_value, y_centered) {
+    y_var <- mean(as.numeric(y_centered)^2)
+    if (is.na(y_var) || y_var <= 0) {
+      return(NA_real_)
+    }
+    1 - cv_mse_at_lambda(cv_fit, lambda_value) / y_var
+  }
+
+  y <- scale(y, center = TRUE, scale = FALSE)
+  x <- scale(x, center = TRUE, scale = FALSE)
+  if (is.null(cov)) {
+    xcov <- x
+    pcov <- 0L
+  } else {
+    cov <- as.matrix(cov)
+    cov <- scale(cov, center = TRUE, scale = FALSE)
+    pcov <- ncol(cov)
+    xcov <- cbind(x, cov)
+  }
+
+  ft00 <- glmnet::cv.glmnet(x = xcov, y = y, family = "gaussian",
+                            foldid = foldid, alpha = alpha)
+  lambda_tissue <- pick_lambda(ft00)
+  ft0 <- glmnet::glmnet(x = xcov, y = y, family = "gaussian",
+                        lambda = lambda_tissue, alpha = alpha)
+  est.tissue <- c(ft0$a0, as.numeric(ft0$beta))
+
+  C <- stats::contr.helmert(K)
+  c_mat <- pi_k %*% C
+  Z_list <- vector("list", length = K - 1L)
+  for (m in seq_len(K - 1L)) {
+    Z_list[[m]] <- c_mat[, m] * x
+  }
+  Z_block <- do.call(cbind, Z_list)
+  if (is.null(cov)) {
+    XX <- cbind(c_mat, x, Z_block)
+  } else {
+    XX <- cbind(c_mat, x, Z_block, cov)
+  }
+
+  n_c <- K - 1L
+  n_Z <- p * (K - 1L)
+  penalty.factor <- c(rep(0, n_c), rep(1, p + n_Z + pcov))
+  ft11 <- glmnet::cv.glmnet(x = XX, y = y, family = "gaussian",
+                            foldid = foldid, alpha = alpha,
+                            penalty.factor = penalty.factor)
+  lambda_cell <- pick_lambda(ft11)
+  ft <- glmnet::glmnet(x = XX, y = y, family = "gaussian",
+                       lambda = lambda_cell, alpha = alpha,
+                       penalty.factor = penalty.factor)
+  est <- c(ft$a0, as.numeric(ft$beta))
+
+  idx_c <- 1:n_c
+  idx_barb <- (n_c + 1):(n_c + p)
+  idx_Z <- (n_c + p + 1):(n_c + p + n_Z)
+  idx_cov <- if (pcov > 0L) (length(est) - pcov + 1):length(est) else integer(0)
+
+  alpha_vec <- est[idx_c]
+  b_bar <- est[idx_barb]
+  d_mat <- matrix(est[idx_Z], nrow = p, ncol = K - 1L, byrow = FALSE)
+  a_cell <- as.numeric(ft$a0 + C %*% alpha_vec)
+  B_mat <- matrix(NA_real_, nrow = p, ncol = K)
+  for (k in seq_len(K)) {
+    B_mat[, k] <- b_bar + d_mat %*% C[k, ]
+  }
+  colnames(B_mat) <- paste0("Cell", seq_len(K))
+  rownames(B_mat) <- xNameMatrix[[1]]
+
+  if (suppressWarnings(all(d_mat == 0))) {
+    Type <- if (suppressWarnings(all(b_bar == 0))) "NoPredictor" else "NonSpecific"
+  } else {
+    Type <- "CellTypeSpecific"
+  }
+
+  beta.SNP.by.cell <- vector("list", length = K)
+  for (k in seq_len(K)) {
+    beta.SNP.by.cell[[k]] <- data.frame(weight = B_mat[, k], stringsAsFactors = FALSE)
+    rownames(beta.SNP.by.cell[[k]]) <- rownames(B_mat)
+  }
+  names(beta.SNP.by.cell) <- paste0("Cell", seq_len(K))
+
+  n_rows <- 1 + p + pcov
+  beta_cell_mat <- matrix(NA_real_, nrow = n_rows, ncol = K)
+  rownames(beta_cell_mat) <- c("Intercept", xNameMatrix[[1]],
+                              if (pcov > 0) paste0("cov", seq_len(pcov)) else NULL)
+  colnames(beta_cell_mat) <- paste0("Cell", seq_len(K))
+  for (k in seq_len(K)) {
+    beta_cell_mat[1, k] <- a_cell[k]
+    beta_cell_mat[1 + (1:p), k] <- B_mat[, k]
+    if (pcov > 0L) {
+      beta_cell_mat[1 + p + (1:pcov), k] <- if (length(idx_cov) > 0L) est[idx_cov] else 0
+    }
+  }
+  beta_all_models <- cbind(Tissue = est.tissue, beta_cell_mat)
+
+  list(type = Type, beta.SNP.by.cell = beta.SNP.by.cell,
+       beta.all.models = beta_all_models, W = B_mat,
+       glmnet.cell = ft, glmnet.tissue = ft0, yName = yName,
+       xNameMatrix = xNameMatrix,
+       lambda_cell = lambda_cell,
+       lambda_tissue = lambda_tissue,
+       cv_mse_cell = cv_mse_at_lambda(ft11, lambda_cell),
+       cv_mse_tissue = cv_mse_at_lambda(ft00, lambda_tissue),
+       cv_r2_cell = cv_r2_at_lambda(ft11, lambda_cell, y),
+       cv_r2_tissue = cv_r2_at_lambda(ft00, lambda_tissue, y))
+}
+
 # ------------------------------------------------------------------------------
 # Step 3. Load protein, cell-fraction, covariate, and EA-sample inputs
 # ------------------------------------------------------------------------------
@@ -552,7 +705,7 @@ protein_ann <- protein_ann %>%
   distinct(gene_id, .keep_all = TRUE)
 
 # Optional test/debug filter. Example:
-#   PWAS_CHR_FILTER=10 Rscript Analysis_code/pwas/2_train_model_pwas.R
+#   PWAS_CHR_FILTER=10 Rscript Analysis_code/Heart_Protein_Weights/2_train_heart_protein_weights.R
 if (nzchar(chr_filter)) {
   keep_chr <- protein_ann$chr == chr_filter |
     protein_ann$chr == paste0("chr", chr_filter)
@@ -582,6 +735,9 @@ cat("Aligned EA protein samples:", nrow(sample_map), "\n")
 cat("Covariates:", paste(cov_cols, collapse = ", "), "\n")
 cat("Cell types:", paste(cell_type_cols, collapse = ", "), "\n")
 cat("Genotype raw directory:", geno_raw_dir, "\n")
+cat("Weight nonzero threshold:", weight_eps, "\n")
+cat("MiXcan alpha:", mixcan_alpha, "\n")
+cat("Lambda choice:", lambda_choice, "\n")
 if (nzchar(chr_filter)) {
   cat("Chromosome filter:", chr_filter, "\n")
 }
@@ -595,6 +751,7 @@ if (!is.na(max_proteins) && max_proteins > 0) {
 
 res_weights_all <- vector("list", nrow(protein_ann))
 skipped <- list()
+diagnostics <- list()
 
 for (j in seq_len(nrow(protein_ann))) {
   target <- protein_ann[j, ]
@@ -660,6 +817,7 @@ for (j in seq_len(nrow(protein_ann))) {
   storage.mode(x) <- "numeric"
   rownames(x) <- donors
   colnames(x) <- geno_target$snp_annot$varID
+  candidate_snp_num <- ncol(x)
 
   z <- as.matrix(aligned[, cov_cols, drop = FALSE])
   pi_k <- as.matrix(aligned[, cell_type_cols, drop = FALSE])
@@ -681,6 +839,7 @@ for (j in seq_len(nrow(protein_ann))) {
   y <- y[complete_idx]
   z <- z[complete_idx, , drop = FALSE]
   pi_k <- pi_k[complete_idx, , drop = FALSE]
+  complete_sample_num <- length(y)
 
   # Drop extremely rare/unused dosage columns. This mirrors the 2CellTypes
   # training script's mean-dosage filter.
@@ -694,6 +853,7 @@ for (j in seq_len(nrow(protein_ann))) {
   }
 
   x <- x[, keep_snps, drop = FALSE]
+  snp_num_after_maf <- ncol(x)
   snp_annot <- geno_target$snp_annot[match(colnames(x), geno_target$snp_annot$varID), ]
   x_name_matrix <- snp_annot %>%
     transmute(
@@ -714,7 +874,7 @@ for (j in seq_len(nrow(protein_ann))) {
   # Fit the two-component MiXcan model. Errors are logged per protein so one
   # failed fit does not stop training for the remaining proteins.
   fit <- tryCatch(
-    MiXcan_train_K(
+    MiXcan_train_K_select_lambda(
       y = y,
       x = x,
       pi_k = pi_k,
@@ -722,7 +882,8 @@ for (j in seq_len(nrow(protein_ann))) {
       xNameMatrix = x_name_matrix,
       yName = target$gene_id,
       foldid = foldid,
-      alpha = 0.5
+      alpha = mixcan_alpha,
+      lambda_choice = lambda_choice
     ),
     error = function(e) {
       skipped[[length(skipped) + 1L]] <<- data.frame(
@@ -737,13 +898,33 @@ for (j in seq_len(nrow(protein_ann))) {
     next
   }
 
-  # Save only SNPs with at least one nonzero cell-component weight.
+  # Save only SNPs with at least one meaningfully nonzero cell-component weight.
+  # glmnet can return tiny numerical values around 1e-16, which should not be
+  # counted as real selected SNP weights.
   weights <- combine_weights(fit, snp_annot, target, cell_type_cols)
   weight_cols <- paste0("weight_", make_clean_names(cell_type_cols))
-  weights <- weights[rowSums(weights[, weight_cols, drop = FALSE] != 0) > 0, ]
+  weights <- weights[rowSums(abs(weights[, weight_cols, drop = FALSE]) > weight_eps) > 0, ]
   if (nrow(weights)) {
     res_weights_all[[j]] <- weights
   }
+  diagnostics[[length(diagnostics) + 1L]] <- data.frame(
+    gene_id = target$gene_id,
+    gene_name = target$gene_name,
+    chr = target$chr,
+    sample_num = complete_sample_num,
+    candidate_snp_num = candidate_snp_num,
+    snp_num_after_maf = snp_num_after_maf,
+    selected_snp_num = nrow(weights),
+    type = fit$type,
+    alpha = mixcan_alpha,
+    lambda_choice = lambda_choice,
+    lambda_cell = fit$lambda_cell,
+    lambda_tissue = fit$lambda_tissue,
+    cv_mse_cell = fit$cv_mse_cell,
+    cv_mse_tissue = fit$cv_mse_tissue,
+    cv_r2_cell = fit$cv_r2_cell,
+    cv_r2_tissue = fit$cv_r2_tissue
+  )
 
   if (j %% 100 == 0) {
     cat("Processed", j, "proteins\n")
@@ -751,13 +932,13 @@ for (j in seq_len(nrow(protein_ann))) {
 }
 
 # ------------------------------------------------------------------------------
-# Step 6. Save PWAS weights and skipped-protein log
+# Step 6. Save heart protein weights and skipped-protein log
 # ------------------------------------------------------------------------------
 
 weights_final <- bind_rows(res_weights_all)
 weights_file <- file.path(
   results_dir,
-  paste0("weights_pwas_cardiomyocytes_other", output_suffix, ".csv")
+  paste0("weights_heart_protein_cardiomyocytes_other", output_suffix, ".csv")
 )
 write_csv(
   weights_final,
@@ -767,12 +948,23 @@ write_csv(
 skipped_final <- bind_rows(skipped)
 skipped_file <- file.path(
   results_dir,
-  paste0("weights_pwas_cardiomyocytes_other_skipped", output_suffix, ".csv")
+  paste0("weights_heart_protein_cardiomyocytes_other_skipped", output_suffix, ".csv")
 )
 write_csv(
   skipped_final,
   skipped_file
 )
 
+diagnostics_final <- bind_rows(diagnostics)
+diagnostics_file <- file.path(
+  results_dir,
+  paste0("weights_heart_protein_cardiomyocytes_other_diagnostics", output_suffix, ".csv")
+)
+write_csv(
+  diagnostics_final,
+  diagnostics_file
+)
+
 cat("Saved weights:", weights_file, "\n")
 cat("Saved skipped log:", skipped_file, "\n")
+cat("Saved diagnostics:", diagnostics_file, "\n")

@@ -10,7 +10,13 @@ SMiXcan_assoc_test_K(
   x_g,
   n0,
   n1,
-  family = c("binomial", "gaussian")
+  family = c("binomial", "gaussian"),
+  regularization = c("fixed", "estimate"),
+  reg_scale = 0.1,
+  condition_max = 100,
+  reg_min_scale = 0.001,
+  reg_max_scale = 0.1,
+  weight_eps = 1e-12
 )
 }
 \arguments{
@@ -28,6 +34,21 @@ SNPs in columns.}
 \item{n1}{Number of cases.}
 
 \item{family}{Either \code{"binomial"} or \code{"gaussian"}.}
+
+\item{regularization}{Either \code{"fixed"} or \code{"estimate"}.}
+
+\item{reg_scale}{Fixed diagonal regularization scale when
+\code{regularization = "fixed"}.}
+
+\item{condition_max}{Target maximum condition number when
+\code{regularization = "estimate"}.}
+
+\item{reg_min_scale}{Minimum estimated regularization scale.}
+
+\item{reg_max_scale}{Maximum estimated regularization scale.}
+
+\item{weight_eps}{SNPs with all absolute weights <= \code{weight_eps} are
+removed before testing.}
 }
 \value{
 A list containing:
@@ -35,6 +56,11 @@ A list containing:
 \item{Z_join}{Vector of per-cell-type joint Z-scores.}
 \item{p_join_vec}{Vector of per-cell-type joint p-values.}
 \item{p_join}{Combined ACAT p-value across the K cell types.}
+\item{Z_sep}{Vector of separate component Z-scores.}
+\item{p_sep}{Vector of separate component p-values.}
+\item{reg_scale_selected}{Regularization scale used.}
+\item{reg_condition}{Condition number after regularization.}
+\item{mode}{Either \code{"joint"} or \code{"separate"}.}
 }
 }
 \description{
@@ -43,5 +69,7 @@ Run the K-cell-type S-MiXcan association test
 \details{
 This function combines cell-type-specific prediction weights, GWAS summary
 statistics, and a reference genotype panel to compute per-cell-type joint
-association statistics.
+association statistics. The implementation avoids constructing the full
+SNP-by-SNP LD covariance matrix, reuses predicted expression, and supports
+fixed or estimated regularization.
 }

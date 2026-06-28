@@ -4,22 +4,25 @@
 \alias{regularized_inverse_cov}
 \title{Regularized Covariance Matrix Inversion}
 \usage{
-regularized_inverse_cov(X)
+regularized_inverse_cov(X, reg_scale = 0.1)
 }
 \arguments{
 \item{X}{Numeric covariance matrix.}
+
+\item{reg_scale}{Non-negative diagonal regularization scale.}
 }
 \value{
 A list containing:
 \describe{
 \item{inv}{The regularized inverse matrix.}
 \item{lambda}{The regularization parameter used.}
+\item{condition}{Condition number after regularization.}
 }
 }
 \description{
 Compute a regularized inverse covariance matrix
 }
 \details{
-This helper stabilizes covariance-matrix inversion by applying a simple
-correlation-based shrinkage step before inversion.
+This helper stabilizes covariance-matrix inversion by applying diagonal
+regularization to the correlation matrix before inversion.
 }

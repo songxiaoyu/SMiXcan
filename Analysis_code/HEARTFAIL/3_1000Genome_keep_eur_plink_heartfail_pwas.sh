@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Build 1000Genome EUR LD reference files for the CARDMPRI PWAS SNP lists.
-# Run after 3_CARDMPRI_prepare_data_pwas.R.
+# Build 1000Genome EUR LD reference files for the HEARTFAIL PWAS SNP lists.
+# Run after 2_HEARTFAIL_prepare_data_pwas.R.
 
 set -euo pipefail
 
@@ -12,11 +12,11 @@ fi
 
 PAPER_DIR="${PAPER_SMIXCAN_DIR:-/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan}"
 DATA_DIR="${PAPER_DIR}/Data/plink_snplist_by_gene"
-WORKSPACE_DIR="${PAPER_DIR}/Results/pwas/cardmpri_workspace"
-GWAS_ID_DIR="${WORKSPACE_DIR}/cardmpri_filtered_id"
+WORKSPACE_DIR="${HEARTFAIL_WORKSPACE_DIR:-${PAPER_DIR}/Results/heartfail_pwas/heartfail_workspace}"
+GWAS_ID_DIR="${WORKSPACE_DIR}/heartfail_filtered_id"
 EUR_SAMPLES="${PAPER_DIR}/Data/1000Genome/eur_ids.txt"
 
-CHR_LIST="${PWAS_CHR_LIST:-$(echo {1..22})}"
+CHR_LIST="${HEARTFAIL_CHR_LIST:-$(echo {1..22})}"
 PLINK2_ENV="${PWAS_PLINK2_ENV:-}"
 PLINK_ENV="${PWAS_PLINK_ENV:-}"
 PLINK2_BIN="${PLINK2_BIN:-plink2}"
@@ -38,19 +38,19 @@ for chr in ${CHR_LIST}; do
 
   "${PLINK2_BIN}" \
     --pfile "${DATA_DIR}/chr${chr}_hg38" \
-    --extract "${GWAS_ID_DIR}/cardmpri_filtered_chr${chr}_gwas_id_pwas.txt" \
+    --extract "${GWAS_ID_DIR}/heartfail_filtered_chr${chr}_gwas_id_pwas.txt" \
     --keep "${EUR_SAMPLES}" \
     --make-bed \
-    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pwas"
+    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_heartfail_pwas"
 
   if [ -n "${PLINK_ENV}" ]; then
     conda activate "${PLINK_ENV}"
   fi
 
   "${PLINK_BIN}" \
-    --bfile "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_pwas" \
+    --bfile "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_heartfail_pwas" \
     --recodeA \
-    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_012_pwas"
+    --out "${GWAS_ID_DIR}/filtered_chr${chr}_hg38_012_heartfail_pwas"
 
   echo "Finished chr${chr}."
 done

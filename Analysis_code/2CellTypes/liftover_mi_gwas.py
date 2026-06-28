@@ -7,13 +7,21 @@ from collections import defaultdict
 import pandas as pd
 
 
-DEFAULT_INPUT_FILE = (
-    "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Heart/Data/"
-    "I21_MI_.gwas.imputed_v3.both_sexes.tsv.bgz"
+DEFAULT_PAPER_DIR = os.environ.get(
+    "PAPER_SMIXCAN_DIR",
+    "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan",
 )
-DEFAULT_RSID_FILE = (
-    "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Heart/Data/"
-    "1000g_b38_snpIDs.txt"
+DEFAULT_INPUT_FILE = os.path.join(
+    DEFAULT_PAPER_DIR,
+    "Heart",
+    "Data",
+    "I21_MI_.gwas.imputed_v3.both_sexes.tsv.bgz",
+)
+DEFAULT_RSID_FILE = os.path.join(
+    DEFAULT_PAPER_DIR,
+    "Heart",
+    "Data",
+    "1000g_b38_snpIDs.txt",
 )
 
 

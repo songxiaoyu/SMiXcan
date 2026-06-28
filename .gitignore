@@ -3,6 +3,13 @@
 .RData
 .Ruserdata
 .DS_Store
+__pycache__/
+*.pyc
+Rplots.pdf
+Archive/
+archive/
+Experiments/
+experiments/
 *.Rcheck/
 ..Rcheck/
 *.tar.gz

@@ -15,7 +15,7 @@ DEFAULT_INPUT_FILE = os.path.join(
     DEFAULT_PAPER_DIR,
     "Heart",
     "Data",
-    "I21_MI_.gwas.imputed_v3.both_sexes.tsv.bgz",
+    "HEARTFAIL.gwas.imputed_v3.both_sexes.tsv.bgz",
 )
 DEFAULT_RSID_FILE = os.path.join(
     DEFAULT_PAPER_DIR,
@@ -27,7 +27,7 @@ DEFAULT_RSID_FILE = os.path.join(
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Lift MI GWAS variants from GRCh37/hg19 to GRCh38/hg38 and add rsID annotation."
+        description="Lift HEARTFAIL GWAS variants from GRCh37/hg19 to GRCh38/hg38 and add rsID annotation."
     )
     parser.add_argument("--input-file", default=DEFAULT_INPUT_FILE)
     parser.add_argument("--rsid-file", default=DEFAULT_RSID_FILE)
@@ -269,7 +269,7 @@ def main():
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".lifted.tsv",
-        prefix="mi_gwas_",
+        prefix="heartfail_gwas_",
         dir=output_dir,
         delete=False,
     ) as tmp:

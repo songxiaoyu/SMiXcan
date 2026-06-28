@@ -4,3 +4,7 @@
 ^.*\.Rcheck$
 ^\.\.Rcheck$
 ^.*\.tar\.gz$
+^Analysis_code$
+^Archive$
+^archive$
+^Rplots\.pdf$

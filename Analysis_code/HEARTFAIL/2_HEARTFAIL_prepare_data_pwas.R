@@ -1,6 +1,6 @@
 # Input:
-#   1. PWAS training weights from 2_train_model_pwas.R
-#   2. CARDMPRI GWAS lifted to hg38 with rsID annotation
+#   1. Heart protein weights from Analysis_code/Heart_Protein_Weights/2_train_heart_protein_weights.R
+#   2. HEARTFAIL GWAS lifted to hg38 with rsID annotation
 #
 # Output:
 #   1. Per-chromosome SNP ID lists for 1000Genome LD extraction
@@ -15,21 +15,30 @@ paper_dir <- Sys.getenv(
   unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
 )
 
-weights_dir <- file.path(paper_dir, "Results", "pwas", "training_model_weights")
-workspace_dir <- file.path(paper_dir, "Results", "pwas", "cardmpri_workspace")
-gwas_file <- file.path(
-  paper_dir,
-  "Heart", "Data",
-  "I9_CARDMPRI.gwas.imputed_v3.both_sexes_hg38_rsid.tsv.gz"
+weights_dir <- file.path(paper_dir, "Results", "heart_protein_weights", "training_model_weights")
+workspace_dir <- Sys.getenv(
+  "HEARTFAIL_WORKSPACE_DIR",
+  unset = file.path(paper_dir, "Results", "heartfail_pwas", "heartfail_workspace")
+)
+gwas_file <- Sys.getenv(
+  "HEARTFAIL_GWAS_HG38_FILE",
+  unset = file.path(
+    paper_dir,
+    "Heart", "Data",
+    "HEARTFAIL.gwas.imputed_v3.both_sexes_hg38_rsid.tsv.gz"
+  )
 )
 weights_file <- Sys.getenv(
   "PWAS_WEIGHTS_FILE",
-  unset = file.path(weights_dir, "weights_pwas_cardiomyocytes_other.csv")
+  unset = file.path(
+    weights_dir,
+    "weights_heart_protein_cardiomyocytes_other_moderate_100kb_r2_0.99_alpha0.5_lambdamin.csv"
+  )
 )
-chr_list <- as.integer(strsplit(Sys.getenv("PWAS_CHR_LIST", unset = paste(1:22, collapse = ",")), ",")[[1]])
+chr_list <- as.integer(strsplit(Sys.getenv("HEARTFAIL_CHR_LIST", unset = paste(1:22, collapse = ",")), ",")[[1]])
 
-input_dir <- file.path(workspace_dir, "cardmpri_input")
-filtered_id_dir <- file.path(workspace_dir, "cardmpri_filtered_id")
+input_dir <- file.path(workspace_dir, "heartfail_input")
+filtered_id_dir <- file.path(workspace_dir, "heartfail_filtered_id")
 dir.create(input_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(filtered_id_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -63,12 +72,12 @@ mw_input <- mw_input %>%
 setDT(mw_input)
 setkey(mw_input, CHR, varID)
 
-# Step 2. Read CARDMPRI GWAS once and standardize its columns.
+# Step 2. Read HEARTFAIL GWAS once and standardize its columns.
 gwas <- fread(gwas_file)
-required_gwas_cols <- c("CHR38", "POS38", "REF", "ALT", "beta", "se", "pval")
+required_gwas_cols <- c("CHR38", "POS38", "REF", "ALT", "minor_allele", "beta", "se", "pval")
 missing_gwas_cols <- setdiff(required_gwas_cols, names(gwas))
 if (length(missing_gwas_cols)) {
-  stop("CARDMPRI GWAS is missing columns: ", paste(missing_gwas_cols, collapse = ", "))
+  stop("HEARTFAIL GWAS is missing columns: ", paste(missing_gwas_cols, collapse = ", "))
 }
 if (!"rsid" %in% names(gwas)) {
   gwas[, rsid := NA_character_]
@@ -78,14 +87,21 @@ gwas <- gwas %>%
   mutate(
     CHR = paste0("chr", normalize_chr(CHR38)),
     POS = as.integer(POS38),
-    Baseline.Gwas = as.character(REF),
-    Effect.Gwas = as.character(ALT),
+    REF = toupper(as.character(REF)),
+    ALT = toupper(as.character(ALT)),
+    minor_allele = toupper(as.character(minor_allele)),
+    Effect.Gwas = minor_allele,
+    Baseline.Gwas = case_when(
+      minor_allele == ALT ~ REF,
+      minor_allele == REF ~ ALT,
+      TRUE ~ NA_character_
+    ),
     beta.Gwas = as.numeric(beta),
     SE.Gwas = as.numeric(se),
     pval.Gwas = as.numeric(pval),
     rsid = as.character(rsid)
   ) %>%
-  filter(!is.na(POS), !is.na(beta.Gwas), !is.na(SE.Gwas))
+  filter(!is.na(POS), !is.na(Baseline.Gwas), !is.na(beta.Gwas), !is.na(SE.Gwas))
 setDT(gwas)
 
 # Step 3. For each chromosome, match forward and reverse allele orientation.
@@ -119,7 +135,7 @@ for (chr in chr_list) {
 
   write.table(
     data.frame(mw_gwas_input$varID),
-    file = file.path(filtered_id_dir, sprintf("cardmpri_filtered_chr%d_gwas_id_pwas.txt", chr)),
+    file = file.path(filtered_id_dir, sprintf("heartfail_filtered_chr%d_gwas_id_pwas.txt", chr)),
     col.names = FALSE,
     row.names = FALSE,
     quote = FALSE
@@ -127,6 +143,6 @@ for (chr in chr_list) {
 
   saveRDS(
     mw_gwas_input,
-    file = file.path(input_dir, sprintf("chr%d_mw_gwas_input_cardmpri_pwas.rds", chr))
+    file = file.path(input_dir, sprintf("chr%d_mw_gwas_input_heartfail_pwas.rds", chr))
   )
 }

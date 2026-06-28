@@ -13,7 +13,10 @@ library(janitor)
 library(tibble)
 library(doParallel)
 library(dplyr)
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 data_dir <- file.path(paper_dir, "Data")
 gtex_dir <- file.path(data_dir, "GTEx")
 results_dir <- file.path(paper_dir, "Results")

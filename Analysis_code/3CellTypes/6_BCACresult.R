@@ -1,15 +1,15 @@
 library(data.table)
 library(dplyr)
 library(SMiXcan)
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 results_dir <- file.path(paper_dir, "Results", "SMiXcanK_results")
 data_dir <- file.path(paper_dir, "Data")
 #---Input----
 combined_path3 <- file.path(results_dir, "bcac2020_result_pi3_02.csv")
 combined3 = read.csv(combined_path3)
-
-#combined_path2 <- '/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2.csv'
-#combined2 <- read.csv(combined_path2)
 
 #---Add anotations----
 ensembl_ref = read.csv(file.path(data_dir, "ensembl38.txt"))
@@ -38,8 +38,6 @@ setcolorder(combined3, c("gene_name", "gene_id", "CYTOBAND",
                          setdiff(names(combined3), c("gene_name","gene_id","CYTOBAND"))))
 
 
-
-# combined2 <- read.csv('/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan/Results/SMiXcanK_results/bcac2020_result_pi2_annotated.csv')
 
 # Calculate fwer cutoff
 combined3$fwer_p_join <- p.adjust(combined3$p_join, method = "bonferroni")

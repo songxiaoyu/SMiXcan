@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Explicitly source conda setup
-source /opt/anaconda3/etc/profile.d/conda.sh
+CONDA_SH="${CONDA_SH:-/opt/anaconda3/etc/profile.d/conda.sh}"
+source "${CONDA_SH}"
 conda activate plink2
 
 # Script name retained for history. The kept 3pi workflow below uses the
@@ -9,8 +10,9 @@ conda activate plink2
 
 # Base paths
 CHR_LIST=$(echo {1..22})
-DATA_DIR="/Users/zhusinan/Downloads/adriana/plink_snplist_by_gene"
-GWAS_ID_DIR="/Users/zhusinan/Downloads/S-MiXcan_code_folder/3pi/bcac2020_filtered_id"
+PAPER_DIR="${PAPER_SMIXCAN_DIR:-/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan}"
+DATA_DIR="${PAPER_DIR}/Data/plink_snplist_by_gene"
+GWAS_ID_DIR="${PAPER_DIR}/Results/3pi_workspace/bcac2020_filtered_id"
 
 for chr in $CHR_LIST; do
   conda activate plink2

@@ -3,7 +3,10 @@
 library(dplyr)
 library(SMiXcan)
 
-paper_dir <- "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+paper_dir <- Sys.getenv(
+  "PAPER_SMIXCAN_DIR",
+  unset = "/Users/zhusinan/Library/CloudStorage/Dropbox/Paper_SMiXcan"
+)
 results_dir <- file.path(paper_dir, "Results")
 
 # Three cell types only  ----
