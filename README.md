@@ -27,15 +27,22 @@ nested package copies are not tracked in this repository.
 Install dependent packages:
 ```r
 install.packages("devtools")
-install_github("petraf01/BayesDeBulk/BayesDeBulk")
+devtools::install_github("petraf01/BayesDeBulk/BayesDeBulk")
 
 if (!requireNamespace("BiocManager", quietly = TRUE))
- install.packages("BiocManager")
+  install.packages("BiocManager")
 BiocManager::install("limma")
 install.packages("matrixStats")
 install.packages("nnls")
 install.packages("R.methodsS3")
 install.packages("lcmix",repos="http://r-forge.r-project.org")
+install.packages("pkgbuild")
+pkgbuild::check_build_tools(debug = TRUE)
+devtools::install_github("yaowuliu/ACAT")
+# In terminal, Install:
+#sudo xcode-select --install
+#open https://mac.r-project.org/tools/gfortran-14.2-universal.pkg
+
 devtools::install_github("kjgleason/Primo")
 ```
 
