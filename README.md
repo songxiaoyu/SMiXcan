@@ -24,28 +24,32 @@ nested package copies are not tracked in this repository.
 
 ## Installation
 
-Install from the local repository:
-
+Install dependent packages:
 ```r
 install.packages("devtools")
-devtools::install()
+install_github("petraf01/BayesDeBulk/BayesDeBulk")
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+ install.packages("BiocManager")
+BiocManager::install("limma")
+install.packages("matrixStats")
+install.packages("nnls")
+install.packages("R.methodsS3")
+install.packages("lcmix",repos="http://r-forge.r-project.org")
+devtools::install_github("kjgleason/Primo")
 ```
 
-Or install from GitHub after the repository is pushed:
+
+
+Install our own package from GitHub :
 
 ```r
 devtools::install_github("songxiaoyu/SMiXcan")
 ```
 
-To build a source package locally:
 
-```bash
-R CMD build .
-```
 
-The build output is `SMiXcan_0.1.0.tar.gz`. `Analysis_code/` is intentionally
-excluded from the package tarball through `.Rbuildignore`; it remains available
-in the GitHub repository as workflow code.
+
 
 ## Core Workflow
 
