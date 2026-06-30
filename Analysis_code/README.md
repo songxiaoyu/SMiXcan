@@ -89,8 +89,24 @@ install.packages(c(
   "doParallel", "doRNG", "janitor", "tibble", "DBI", "RSQLite",
   "MASS", "ACAT", "Primo"
 ))
+install_github("petraf01/BayesDeBulk/BayesDeBulk")
 
 install.packages(".", repos = NULL, type = "source")
+```
+
+```
+if (!requireNamespace("BiocManager", quietly = TRUE))
+ install.packages("BiocManager")
+BiocManager::install("limma")
+
+install.packages("MASS")
+install.packages("matrixStats")
+install.packages("nnls")
+install.packages("R.methodsS3")
+install.packages("lcmix",repos="http://r-forge.r-project.org")
+
+devtools::install_github("kjgleason/Primo")
+library("Primo")
 ```
 
 Many scripts use `library(SMiXcan)`, so the package should be installed before running them.
